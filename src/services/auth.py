@@ -7,13 +7,21 @@ from redis import StrictRedis
 from ..models.user import User
 from ..repositories.user import UserRepository
 from ..config import Config
+from src.services.email import EmailService
 
 
 class AuthService:
-    def __init__(self, user_repository: UserRepository, redis_client: StrictRedis):
+    def __init__(
+        self,
+        user_repository: UserRepository,
+        redis_client: StrictRedis,
+        email_service: EmailService,
+    ):
         self.user_repository = user_repository
         self.redis_client = redis_client
         self.token_prefix = "token:"
+        self.email_service = email_service
+        self.reset_prefix = "reset:"
 
     def _hash_password(self, password: str) -> str:
         salt = bcrypt.gensalt()
@@ -90,3 +98,61 @@ class AuthService:
         if self.redis_client.delete(token_key):
             return True
         return False
+
+    def request_password_reset(self, email: str) -> bool:
+        user = self.user_repository.find_by_email(email)
+        if not user:
+            return False
+
+        # Generate reset token
+        reset_token = jwt.encode(
+            {
+                "sub": user.id,
+                "exp": datetime.utcnow()
+                + timedelta(minutes=Config.PASSWORD_RESET_EXPIRE_MINUTES),
+            },
+            Config.JWT_SECRET_KEY,
+            algorithm=Config.JWT_ALGORITHM,
+        )
+
+        # Store token in Redis
+        token_key = f"{self.reset_prefix}{reset_token}"
+        self.redis_client.setex(
+            token_key, Config.PASSWORD_RESET_EXPIRE_MINUTES * 60, user.id
+        )
+
+        # Send reset email
+        reset_url = f"http://localhost:5000/auth/reset-password?token={reset_token}"
+        self.email_service.send_email(
+            user.email,
+            "Password Reset Request",
+            f"Click the following link to reset your password: {reset_url}",
+        )
+        return True
+
+    def reset_password(self, token: str, new_password: str) -> bool:
+        token_key = f"{self.reset_prefix}{token}"
+        user_id = self.redis_client.get(token_key)
+
+        if not user_id:
+            return False
+
+        try:
+            payload = jwt.decode(
+                token, Config.JWT_SECRET_KEY, algorithms=[Config.JWT_ALGORITHM]
+            )
+            user = self.user_repository.find_by_id(payload["sub"])
+            if not user:
+                return False
+
+            # Update password
+            hashed_password = self._hash_password(new_password)
+            user.password = hashed_password
+            self.user_repository.update(user)
+
+            # Remove reset token
+            self.redis_client.delete(token_key)
+            return True
+
+        except JWTError:
+            return False

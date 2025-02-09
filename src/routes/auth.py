@@ -68,3 +68,38 @@ def logout(auth_service: AuthService = Provide[Container.auth_service]):
     if auth_service.logout(token):
         return jsonify({"message": "Successfully logged out"}), 200
     return jsonify({"error": "Invalid or expired token"}), 401
+
+
+@auth_bp.route("/forgot-password", methods=["POST"])
+@inject
+def forgot_password(auth_service: AuthService = Provide[Container.auth_service]):
+    data = request.get_json()
+    email = data.get("email")
+
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    auth_service.request_password_reset(email)
+    return (
+        jsonify(
+            {
+                "message": "If an account exists with this email, you will receive password reset instructions."
+            }
+        ),
+        200,
+    )
+
+
+@auth_bp.route("/reset-password", methods=["POST"])
+@inject
+def reset_password(auth_service: AuthService = Provide[Container.auth_service]):
+    data = request.get_json()
+    token = data.get("token")
+    new_password = data.get("new_password")
+
+    if not token or not new_password:
+        return jsonify({"error": "Token and new password are required"}), 400
+
+    if auth_service.reset_password(token, new_password):
+        return jsonify({"message": "Password successfully reset"}), 200
+    return jsonify({"error": "Invalid or expired reset token"}), 400
