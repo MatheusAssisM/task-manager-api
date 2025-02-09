@@ -1,8 +1,7 @@
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock
 import pytest
 from src.services.task import TaskService
 from src.models.task import Task
-from bson.objectid import ObjectId
 
 
 @pytest.fixture
