@@ -4,6 +4,7 @@ from redis import StrictRedis
 from .services.task import TaskService
 from .services.auth import AuthService
 from .services.user import UserService
+from .services.email import EmailService
 from .repositories.task import TaskRepository
 from .repositories.user import UserRepository
 
@@ -51,10 +52,13 @@ class Container(containers.DeclarativeContainer):
     )
 
     # Services
+    email_service = providers.Factory(EmailService)
+
     auth_service = providers.Factory(
         AuthService,
         user_repository=user_repository,
         redis_client=redis_client,
+        email_service=email_service,
     )
 
     user_service = providers.Factory(
