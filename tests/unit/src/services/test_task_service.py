@@ -20,23 +20,29 @@ def task_repository():
 
 
 @pytest.fixture
-def task_service(task_repository):
-    return TaskService(task_repository)
+def user_service():
+    return MagicMock()
+
+@pytest.fixture
+def task_service(task_repository, user_service):
+    return TaskService(task_repository, user_service)
 
 
 def test_create_task_success(task_service):
     # Arrange
     title = "New Task"
     description = "New Description"
+    user_id = "test_user_id"
     expected_result = {
         "_id": "507f1f77bcf86cd799439011",
         "title": title,
         "description": description,
+        "user_id": user_id,
     }
     task_service.task_repository.create.return_value = expected_result
 
     # Act
-    result = task_service.create_task(title, description)
+    result = task_service.create_task(title, description, user_id)
 
     # Assert
     assert result == expected_result
@@ -67,31 +73,37 @@ def test_create_task_with_empty_title(task_service):
     # Arrange
     title = ""
     description = "Some description"
+    user_id = "test_user_id"
 
     # Act & Assert
     with pytest.raises(ValueError, match="Title cannot be empty"):
-        task_service.create_task(title, description)
+        task_service.create_task(title, description, user_id)
+
 
 
 def test_get_task_success(task_service, valid_object_id):
     # Arrange
-    valid_object_id,
-    task_service.task_repository.find_by_id.return_value = valid_object_id
+    task = Task(title="Test Task", description="Test Description", user_id="test_user_id", id=valid_object_id)
+    task_service.task_repository.find_by_id.return_value = task
 
     # Act
-    result = task_service.get_task(valid_object_id)
+    result = task_service.get_task(valid_object_id, "test_user_id")
 
     # Assert
-    assert result == valid_object_id
+    assert result.id == valid_object_id
+    assert result.title == "Test Task"
+    assert result.description == "Test Description"
+    assert result.user_id == "test_user_id"
 
 
 def test_get_task_invalid_id(task_service):
     # Arrange
     invalid_id = "invalid_id"
+    user_id = "test_user_id"
 
     # Act & Assert
     with pytest.raises(ValueError, match="Invalid task ID format"):
-        task_service.get_task(invalid_id)
+        task_service.get_task(invalid_id, user_id)
 
 
 def test_get_task_not_found(task_service, valid_object_id):
@@ -99,7 +111,7 @@ def test_get_task_not_found(task_service, valid_object_id):
     task_service.task_repository.find_by_id.return_value = None
 
     # Act
-    result = task_service.get_task(valid_object_id)
+    result = task_service.get_task(valid_object_id, "test_user_id")
 
     # Assert
     assert result is None
@@ -107,9 +119,10 @@ def test_get_task_not_found(task_service, valid_object_id):
 
 def test_get_all_tasks_success(task_service):
     # Arrange
+    user_id = "test_user_id"
     expected_tasks = [
-        Task(title="Test Task 1", description="Description 1"),
-        Task(title="Test Task 2", description="Description 2"),
+        Task(title="Test Task 1", description="Description 1", user_id=user_id),
+        Task(title="Test Task 2", description="Description 2", user_id=user_id),
     ]
     task_service.task_repository.find_all.return_value = expected_tasks
 
@@ -128,8 +141,9 @@ def test_update_task_success(task_service, valid_object_id):
         "_id": valid_object_id,
         "title": "Old Title",
         "description": "Old Description",
+        "user_id": "test_user_id",
     }
-    task_service.task_repository.find_by_id.return_value = existing_task
+    task_service.task_repository.find_by_id.return_value = Task.from_dict(existing_task)
     new_title = "Updated Task"
     new_description = "Updated Description"
 
