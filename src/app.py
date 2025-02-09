@@ -3,6 +3,7 @@ from src.config import Config
 from src.extensions import init_app
 from src.routes.task import tasks_bp  # Update this import
 
+
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -15,8 +16,9 @@ def create_app(config_class=Config):
 
     return app
 
+
 # Create the application instance
 app = create_app()
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000, debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8000, debug=True)
