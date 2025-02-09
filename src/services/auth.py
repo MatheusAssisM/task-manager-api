@@ -4,11 +4,7 @@ import bcrypt
 from jose import JWTError, jwt
 from ..models.user import User
 from ..repositories.user import UserRepository
-
-# Configuration constants
-SECRET_KEY = "your-secret-key"  # In production, use environment variable
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+from ..config import Config
 
 
 class AuthService:
@@ -46,21 +42,23 @@ class AuthService:
         claims = {
             "sub": user.id,
             "email": user.email,
-            "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+            "exp": datetime.utcnow()
+            + timedelta(minutes=Config.JWT_ACCESS_TOKEN_EXPIRE_MINUTES),
         }
-        token = jwt.encode(claims, SECRET_KEY, algorithm=ALGORITHM)
+        token = jwt.encode(
+            claims, Config.JWT_SECRET_KEY, algorithm=Config.JWT_ALGORITHM
+        )
         return {
             "access_token": token,
-            "token_type": "bearer",
-            "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            "expires_in": Config.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         }
 
     def validate_token(self, token: str) -> Optional[User]:
         try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            payload = jwt.decode(
+                token, Config.JWT_SECRET_KEY, algorithms=[Config.JWT_ALGORITHM]
+            )
             user_id = payload.get("sub")
-            if user_id is None:
-                return None
-            return self.user_repository.find_by_id(user_id)
+            return self.user_repository.find_by_id(user_id) if user_id else None
         except JWTError:
             return None

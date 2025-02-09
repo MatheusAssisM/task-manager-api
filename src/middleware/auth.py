@@ -17,16 +17,11 @@ def require_auth(f):
             return jsonify({"error": "No authorization header"}), 401
 
         try:
-            # Expecting "Bearer <token>"
-            token_type, token = auth_header.split()
-            if token_type.lower() != "bearer":
-                return jsonify({"error": "Invalid token type"}), 401
-
             # Verify and decode token
-            decoded_token = auth_service.verify_token(token)
+            decoded_token = auth_service.validate_token(auth_header.split()[1])
 
             # Add user_id to kwargs so the route can access it
-            kwargs["current_user_id"] = decoded_token["user_id"]
+            kwargs["current_user_id"] = decoded_token["sub"]
             return f(*args, **kwargs)
 
         except ValueError as e:

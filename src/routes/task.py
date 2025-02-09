@@ -1,34 +1,12 @@
-from flask import Blueprint, request, jsonify, abort
+from flask import Blueprint, jsonify
 from dependency_injector.wiring import inject, Provide
 from src.container import Container
 from src.services.task import TaskService
 from src.schemas.task import TaskCreate, TaskUpdate
-from pydantic import ValidationError
-from functools import wraps
 from src.middleware.auth import require_auth
+from src.utils.decorators import validate_request
 
 tasks_bp = Blueprint("tasks", __name__)
-
-
-def validate_request(schema_class):
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            try:
-                json_data = request.get_json()
-                validated_data = schema_class(**json_data)
-                return f(validated_data, *args, **kwargs)
-            except ValidationError as e:
-                return (
-                    jsonify({"error": "Validation error", "details": e.errors()}),
-                    400,
-                )
-            except Exception as e:
-                return jsonify({"error": str(e)}), 500
-
-        return decorated_function
-
-    return decorator
 
 
 @tasks_bp.route("/", methods=["POST"])

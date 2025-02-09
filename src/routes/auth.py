@@ -3,26 +3,10 @@ from dependency_injector.wiring import inject, Provide
 from src.container import Container
 from src.services.auth import AuthService
 from src.schemas.user import UserRegister, UserLogin, UserResponse
-from functools import wraps
+from src.utils.decorators import validate_request
 
 
 auth_bp = Blueprint("auth", __name__)
-
-
-def validate_request(schema_class):
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            try:
-                json_data = request.get_json()
-                validated_data = schema_class(**json_data)
-                return f(validated_data, *args, **kwargs)
-            except Exception as e:
-                return jsonify({"error": str(e)}), 400
-
-        return decorated_function
-
-    return decorator
 
 
 @auth_bp.route("/register", methods=["POST"])
@@ -65,10 +49,6 @@ def login(data: UserLogin, auth_service: AuthService = Provide[Container.auth_se
         return (
             jsonify(
                 {
-                    "message": "Login successful",
-                    "user": UserResponse(
-                        id=user.id, username=user.username, email=user.email
-                    ).model_dump(),
                     **token_data,
                 }
             ),

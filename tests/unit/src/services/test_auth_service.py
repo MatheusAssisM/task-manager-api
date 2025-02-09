@@ -3,7 +3,8 @@ from unittest.mock import Mock, patch
 from datetime import datetime, timedelta
 from jose import jwt
 
-from src.services.auth import AuthService, SECRET_KEY, ALGORITHM
+from src.config import Config
+from src.services.auth import AuthService
 from src.models.user import User
 
 
@@ -100,11 +101,14 @@ def test_create_access_token(auth_service, test_user):
 
     # Assert
     assert "access_token" in token_data
-    assert token_data["token_type"] == "bearer"
     assert token_data["expires_in"] > 0
 
     # Verify token contents
-    decoded = jwt.decode(token_data["access_token"], SECRET_KEY, algorithms=[ALGORITHM])
+    decoded = jwt.decode(
+        token_data["access_token"],
+        Config.JWT_SECRET_KEY,
+        algorithms=[Config.JWT_ALGORITHM],
+    )
     assert decoded["sub"] == test_user.id
     assert decoded["email"] == test_user.email
 
@@ -115,10 +119,11 @@ def test_validate_token_success(auth_service, user_repository, test_user):
         {
             "sub": test_user.id,
             "email": test_user.email,
-            "exp": datetime.utcnow() + timedelta(minutes=30),
+            "exp": datetime.utcnow()
+            + timedelta(minutes=Config.JWT_ACCESS_TOKEN_EXPIRE_MINUTES),
         },
-        SECRET_KEY,
-        algorithm=ALGORITHM,
+        Config.JWT_SECRET_KEY,
+        algorithm=Config.JWT_ALGORITHM,
     )
     user_repository.find_by_id.return_value = test_user
 
@@ -137,8 +142,8 @@ def test_validate_token_expired(auth_service):
             "email": "test@example.com",
             "exp": datetime.utcnow() - timedelta(minutes=1),
         },
-        SECRET_KEY,
-        algorithm=ALGORITHM,
+        Config.JWT_SECRET_KEY,
+        algorithm=Config.JWT_ALGORITHM,
     )
 
     # Act
