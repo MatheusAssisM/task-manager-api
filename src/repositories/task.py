@@ -23,3 +23,7 @@ class TaskRepository:
     def find_all(self) -> list[Task]:
         tasks_data = self.collection.find({})
         return [Task.from_dict(task_data) for task_data in tasks_data]
+
+    def find_by_user_id(self, user_id: str) -> list[Task]:
+        tasks_data = self.collection.find({"user_id": user_id})
+        return [Task.from_dict(task_data) for task_data in tasks_data]
