@@ -54,6 +54,7 @@ class Container(containers.DeclarativeContainer):
     auth_service = providers.Factory(
         AuthService,
         user_repository=user_repository,
+        redis_client=redis_client,
     )
 
     user_service = providers.Factory(
