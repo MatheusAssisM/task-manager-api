@@ -65,4 +65,5 @@ class Container(containers.DeclarativeContainer):
     task_service = providers.Factory(
         TaskService,
         task_repository=task_repository,
+        user_service=user_service,
     )
