@@ -7,9 +7,11 @@ coverage==7.6.11
 dependency-injector==4.45.0
 dnspython==2.7.0
 ecdsa==0.19.0
+email_validator==2.2.0
 Flask==3.0.2
 Flask-PyMongo==2.3.0
 gunicorn==21.2.0
+idna==3.10
 iniconfig==2.0.0
 itsdangerous==2.2.0
 Jinja2==3.1.5
