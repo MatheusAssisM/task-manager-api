@@ -14,7 +14,7 @@ class Container(containers.DeclarativeContainer):
         host=config.mongo.host,
         port=config.mongo.port,
         username=config.mongo.username,
-        password=config.mongo.password
+        password=config.mongo.password,
     )
 
     redis_client = providers.Singleton(
@@ -22,7 +22,7 @@ class Container(containers.DeclarativeContainer):
         host=config.redis.host,
         port=config.redis.port,
         db=config.redis.db,
-        password=config.redis.password
+        password=config.redis.password,
     )
 
     # Database

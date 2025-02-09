@@ -9,7 +9,7 @@ class User:
         return {
             "username": self.username,
             "email": self.email,
-            "password": self.password
+            "password": self.password,
         }
 
     @staticmethod
@@ -18,5 +18,5 @@ class User:
             id=str(data.get("_id")),
             username=data.get("username"),
             email=data.get("email"),
-            password=data.get("password")
+            password=data.get("password"),
         )

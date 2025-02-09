@@ -19,10 +19,7 @@ class UserRepository:
         return User.from_dict(user_data) if user_data else None
 
     def update(self, user_id: str, user: User) -> None:
-        self.collection.update_one(
-            {"_id": ObjectId(user_id)}, 
-            {"$set": user.to_dict()}
-        )
+        self.collection.update_one({"_id": ObjectId(user_id)}, {"$set": user.to_dict()})
 
     def delete(self, user_id: str) -> None:
         self.collection.delete_one({"_id": ObjectId(user_id)})

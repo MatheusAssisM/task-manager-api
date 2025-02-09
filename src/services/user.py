@@ -24,10 +24,16 @@ class UserService:
         """Retrieve all users"""
         return self.user_repository.find_all()
 
-    def update_user(self, user_id: str, username: str = None, email: str = None, password: str = None) -> User:
+    def update_user(
+        self,
+        user_id: str,
+        username: str = None,
+        email: str = None,
+        password: str = None,
+    ) -> User:
         """Update user information"""
         user = self.get_user_by_id(user_id)
-        
+
         if username:
             user.username = username
         if email and email != user.email:

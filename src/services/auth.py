@@ -17,12 +17,11 @@ class AuthService:
 
     def _hash_password(self, password: str) -> str:
         salt = bcrypt.gensalt()
-        return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+        return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
     def _verify_password(self, plain_password: str, hashed_password: str) -> bool:
         return bcrypt.checkpw(
-            plain_password.encode('utf-8'),
-            hashed_password.encode('utf-8')
+            plain_password.encode("utf-8"), hashed_password.encode("utf-8")
         )
 
     def register(self, username: str, email: str, password: str) -> User:
@@ -47,13 +46,13 @@ class AuthService:
         claims = {
             "sub": user.id,
             "email": user.email,
-            "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
         }
         token = jwt.encode(claims, SECRET_KEY, algorithm=ALGORITHM)
         return {
             "access_token": token,
             "token_type": "bearer",
-            "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
+            "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         }
 
     def validate_token(self, token: str) -> Optional[User]:

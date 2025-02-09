@@ -18,9 +18,7 @@ def user_repository(mock_collection):
 @pytest.fixture
 def sample_user():
     return User(
-        username="test_user",
-        email="test@example.com",
-        password="hashed_password"
+        username="test_user", email="test@example.com", password="hashed_password"
     )
 
 
@@ -30,14 +28,16 @@ def sample_user_dict():
         "_id": ObjectId("507f1f77bcf86cd799439011"),
         "username": "test_user",
         "email": "test@example.com",
-        "password": "hashed_password"
+        "password": "hashed_password",
     }
 
 
 def test_create_user(user_repository, mock_collection, sample_user):
     # Arrange
     expected_id = "507f1f77bcf86cd799439011"
-    mock_collection.insert_one.return_value = MagicMock(inserted_id=ObjectId(expected_id))
+    mock_collection.insert_one.return_value = MagicMock(
+        inserted_id=ObjectId(expected_id)
+    )
 
     # Act
     user_id = user_repository.create(sample_user)
@@ -75,7 +75,9 @@ def test_find_by_id_non_existing_user(user_repository, mock_collection):
     mock_collection.find_one.assert_called_once_with({"_id": ObjectId(user_id)})
 
 
-def test_find_by_email_existing_user(user_repository, mock_collection, sample_user_dict):
+def test_find_by_email_existing_user(
+    user_repository, mock_collection, sample_user_dict
+):
     # Arrange
     email = "test@example.com"
     mock_collection.find_one.return_value = sample_user_dict
@@ -111,8 +113,7 @@ def test_update_user(user_repository, mock_collection, sample_user):
 
     # Assert
     mock_collection.update_one.assert_called_once_with(
-        {"_id": ObjectId(user_id)},
-        {"$set": sample_user.to_dict()}
+        {"_id": ObjectId(user_id)}, {"$set": sample_user.to_dict()}
     )
 
 

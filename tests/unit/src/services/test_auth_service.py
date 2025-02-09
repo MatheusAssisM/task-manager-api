@@ -23,7 +23,7 @@ def test_user():
         id="test_id",
         username="test_user",
         email="test@example.com",
-        password="hashed_password"
+        password="hashed_password",
     )
 
 
@@ -34,9 +34,7 @@ def test_register_success(auth_service, user_repository):
 
     # Act
     new_user = auth_service.register(
-        username="new_user",
-        email="new@example.com",
-        password="password123"
+        username="new_user", email="new@example.com", password="password123"
     )
 
     # Assert
@@ -53,20 +51,17 @@ def test_register_existing_email(auth_service, user_repository, test_user):
     # Act & Assert
     with pytest.raises(ValueError, match="Email already registered"):
         auth_service.register(
-            username="new_user",
-            email="test@example.com",
-            password="password123"
+            username="new_user", email="test@example.com", password="password123"
         )
 
 
 def test_authenticate_success(auth_service, user_repository, test_user):
     # Arrange
     user_repository.find_by_email.return_value = test_user
-    with patch('bcrypt.checkpw', return_value=True):
+    with patch("bcrypt.checkpw", return_value=True):
         # Act
         authenticated_user = auth_service.authenticate(
-            email="test@example.com",
-            password="correct_password"
+            email="test@example.com", password="correct_password"
         )
 
         # Assert
@@ -76,11 +71,10 @@ def test_authenticate_success(auth_service, user_repository, test_user):
 def test_authenticate_invalid_password(auth_service, user_repository, test_user):
     # Arrange
     user_repository.find_by_email.return_value = test_user
-    with patch('bcrypt.checkpw', return_value=False):
+    with patch("bcrypt.checkpw", return_value=False):
         # Act
         authenticated_user = auth_service.authenticate(
-            email="test@example.com",
-            password="wrong_password"
+            email="test@example.com", password="wrong_password"
         )
 
         # Assert
@@ -93,8 +87,7 @@ def test_authenticate_user_not_found(auth_service, user_repository):
 
     # Act
     authenticated_user = auth_service.authenticate(
-        email="nonexistent@example.com",
-        password="password123"
+        email="nonexistent@example.com", password="password123"
     )
 
     # Assert
@@ -118,11 +111,15 @@ def test_create_access_token(auth_service, test_user):
 
 def test_validate_token_success(auth_service, user_repository, test_user):
     # Arrange
-    token = jwt.encode({
-        "sub": test_user.id,
-        "email": test_user.email,
-        "exp": datetime.utcnow() + timedelta(minutes=30)
-    }, SECRET_KEY, algorithm=ALGORITHM)
+    token = jwt.encode(
+        {
+            "sub": test_user.id,
+            "email": test_user.email,
+            "exp": datetime.utcnow() + timedelta(minutes=30),
+        },
+        SECRET_KEY,
+        algorithm=ALGORITHM,
+    )
     user_repository.find_by_id.return_value = test_user
 
     # Act
@@ -134,11 +131,15 @@ def test_validate_token_success(auth_service, user_repository, test_user):
 
 def test_validate_token_expired(auth_service):
     # Arrange
-    token = jwt.encode({
-        "sub": "test_id",
-        "email": "test@example.com",
-        "exp": datetime.utcnow() - timedelta(minutes=1)
-    }, SECRET_KEY, algorithm=ALGORITHM)
+    token = jwt.encode(
+        {
+            "sub": "test_id",
+            "email": "test@example.com",
+            "exp": datetime.utcnow() - timedelta(minutes=1),
+        },
+        SECRET_KEY,
+        algorithm=ALGORITHM,
+    )
 
     # Act
     validated_user = auth_service.validate_token(token)
