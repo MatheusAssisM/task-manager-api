@@ -21,6 +21,14 @@ services:
     networks:
       - task-manager-network
 
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web interface
+    networks:
+      - task-manager-network
+
 networks:
   task-manager-network:
     driver: bridge
