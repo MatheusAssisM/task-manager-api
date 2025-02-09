@@ -91,9 +91,7 @@ def delete(
 @tasks_bp.route("/user/tasks", methods=["GET"])
 @inject
 @require_auth
-def get_user_tasks(
-    task_service: TaskService = Provide[Container.task_service]
-):
+def get_user_tasks(task_service: TaskService = Provide[Container.task_service]):
     try:
         tasks = task_service.get_user_tasks(g.current_user.id)
         tasks_response = [{"id": task.id, **task.to_dict()} for task in tasks]

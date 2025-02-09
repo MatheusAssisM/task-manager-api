@@ -29,7 +29,11 @@ class TaskService:
         return task
 
     def update_task(
-        self, task_id: str, title: str | None = None, description: str | None = None, user_id: str = None
+        self,
+        task_id: str,
+        title: str | None = None,
+        description: str | None = None,
+        user_id: str = None,
     ) -> None:
         if not ObjectId.is_valid(task_id):
             raise ValueError("Invalid task ID format")
@@ -37,7 +41,7 @@ class TaskService:
         existing_task = self.task_repository.find_by_id(task_id)
         if existing_task is None:
             raise ValueError("Task not found")
-            
+
         if existing_task.user_id != user_id:
             raise ValueError("Unauthorized access to task")
 
@@ -63,7 +67,7 @@ class TaskService:
         existing_task = self.task_repository.find_by_id(task_id)
         if existing_task is None:
             raise ValueError("Task not found")
-            
+
         if existing_task.user_id != user_id:
             raise ValueError("Unauthorized access to task")
 

@@ -40,8 +40,8 @@ class AuthService:
         for key in self.redis_client.scan_iter(f"{self.token_prefix}*"):
             data = self.redis_client.get(key)
             if data:
-                user_data = json.loads(data.decode('utf-8'))
-                if user_data.get('user_id') == user_id:
+                user_data = json.loads(data.decode("utf-8"))
+                if user_data.get("user_id") == user_id:
                     self.redis_client.delete(key)
 
     def authenticate(self, email: str, password: str) -> Optional[User]:
@@ -50,7 +50,7 @@ class AuthService:
             return None
         if not self._verify_password(password, user.password):
             return None
-            
+
         # Clean up any existing tokens before creating a new one
         self._cleanup_previous_tokens(user.id)
         return user
@@ -65,18 +65,14 @@ class AuthService:
         token = jwt.encode(
             claims, Config.JWT_SECRET_KEY, algorithm=Config.JWT_ALGORITHM
         )
-        
+
         # Store token data
         token_key = f"{self.token_prefix}{token}"
-        user_data = {
-            "user_id": user.id,
-            "email": user.email,
-            "username": user.username
-        }
+        user_data = {"user_id": user.id, "email": user.email, "username": user.username}
 
         expiration = Config.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
         self.redis_client.setex(token_key, expiration, json.dumps(user_data))
-        
+
         return {
             "access_token": token,
             "expires_in": expiration,
