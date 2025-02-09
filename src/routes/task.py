@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, g
 from dependency_injector.wiring import inject, Provide
 from src.container import Container
 from src.services.task import TaskService
@@ -15,12 +15,11 @@ tasks_bp = Blueprint("tasks", __name__)
 @validate_request(TaskCreate)
 def create(
     data: TaskCreate,
-    current_user_id: str,
     task_service: TaskService = Provide[Container.task_service],
 ):
     try:
         task_id = task_service.create_task(
-            data.title, data.description, current_user_id
+            data.title, data.description, g.current_user.id
         )
         return jsonify({"message": "Task created successfully", "id": task_id}), 201
     except ValueError as e:
@@ -34,11 +33,10 @@ def create(
 @require_auth
 def retrieve(
     task_id: str,
-    current_user_id: str,
     task_service: TaskService = Provide[Container.task_service],
 ):
     try:
-        task = task_service.get_task(task_id, current_user_id)
+        task = task_service.get_task(task_id, g.current_user.id)
         if task is None:
             return jsonify({"error": "Task not found"}), 404
         return jsonify({"id": task.id, **task.to_dict()}), 200
@@ -55,11 +53,10 @@ def retrieve(
 def update(
     data: TaskUpdate,
     task_id: str,
-    current_user_id: str,
     task_service: TaskService = Provide[Container.task_service],
 ):
     try:
-        task = task_service.get_task(task_id, current_user_id)
+        task = task_service.get_task(task_id, g.current_user.id)
         if task is None:
             return jsonify({"error": "Task not found"}), 404
 
@@ -76,11 +73,10 @@ def update(
 @require_auth
 def delete(
     task_id: str,
-    current_user_id: str,
     task_service: TaskService = Provide[Container.task_service],
 ):
     try:
-        task = task_service.get_task(task_id, current_user_id)
+        task = task_service.get_task(task_id, g.current_user.id)
         if task is None:
             return jsonify({"error": "Task not found"}), 404
 
@@ -96,10 +92,10 @@ def delete(
 @inject
 @require_auth
 def get_user_tasks(
-    current_user_id: str, task_service: TaskService = Provide[Container.task_service]
+    task_service: TaskService = Provide[Container.task_service]
 ):
     try:
-        tasks = task_service.get_user_tasks(current_user_id)
+        tasks = task_service.get_user_tasks(g.current_user.id)
         tasks_response = [{"id": task.id, **task.to_dict()} for task in tasks]
         return jsonify(tasks_response), 200
     except Exception as e:
