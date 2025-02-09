@@ -4,6 +4,8 @@ from src.container import Container
 from src.services.auth import AuthService
 from src.schemas.user import UserRegister, UserLogin, UserResponse
 from src.utils.decorators import validate_request
+from src.middleware.auth import require_auth
+from flask import g
 
 
 auth_bp = Blueprint("auth", __name__)
@@ -58,27 +60,11 @@ def login(data: UserLogin, auth_service: AuthService = Provide[Container.auth_se
         return jsonify({"error": "Internal server error"}), 500
 
 
-@auth_bp.route("/validate-token", methods=["GET"])
+@auth_bp.route("/logout", methods=["POST"])
+@require_auth
 @inject
-def validate_token(auth_service: AuthService = Provide[Container.auth_service]):
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        return jsonify({"error": "Missing or invalid token"}), 401
-
-    token = auth_header.split(" ")[1]
-    user = auth_service.validate_token(token)
-
-    if not user:
-        return jsonify({"error": "Invalid or expired token"}), 401
-
-    return (
-        jsonify(
-            {
-                "valid": True,
-                "user": UserResponse(
-                    id=user.id, username=user.username, email=user.email
-                ).model_dump(),
-            }
-        ),
-        200,
-    )
+def logout(auth_service: AuthService = Provide[Container.auth_service]):
+    token = g.token
+    if auth_service.logout(token):
+        return jsonify({"message": "Successfully logged out"}), 200
+    return jsonify({"error": "Invalid or expired token"}), 401

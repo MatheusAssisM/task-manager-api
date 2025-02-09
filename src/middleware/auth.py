@@ -27,6 +27,7 @@ def require_auth(f):
 
         # Store user in flask g object for route access
         g.current_user = user
+        g.token = token
         return f(*args, **kwargs)
 
     return decorated_function
