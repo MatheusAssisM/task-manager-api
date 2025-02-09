@@ -9,7 +9,21 @@ class Container(containers.DeclarativeContainer):
     config = providers.Configuration()
 
     # Database clients
-    mongo_client = providers.Singleton(MongoClient, config.mongo.uri)
+    mongo_client = providers.Singleton(
+        MongoClient,
+        host=config.mongo.host,
+        port=config.mongo.port,
+        username=config.mongo.username,
+        password=config.mongo.password
+    )
+
+    redis_client = providers.Singleton(
+        StrictRedis,
+        host=config.redis.host,
+        port=config.redis.port,
+        db=config.redis.db,
+        password=config.redis.password
+    )
 
     # Database
     mongo_db = providers.Singleton(
