@@ -30,7 +30,7 @@ def validate_request(schema_class):
     return decorator
 
 
-@tasks_bp.route("/tasks", methods=["POST"])
+@tasks_bp.route("/", methods=["POST"])
 @inject
 @validate_request(TaskCreate)
 def create(
@@ -45,7 +45,7 @@ def create(
         return jsonify({"error": "Internal server error"}), 500
 
 
-@tasks_bp.route("/tasks/<task_id>", methods=["GET"])
+@tasks_bp.route("/<task_id>", methods=["GET"])
 @inject
 def retrieve(task_id: str, task_service: TaskService = Provide[Container.task_service]):
     try:
@@ -59,7 +59,7 @@ def retrieve(task_id: str, task_service: TaskService = Provide[Container.task_se
         return jsonify({"error": "Internal server error"}), 500
 
 
-@tasks_bp.route("/tasks/<task_id>", methods=["PUT"])
+@tasks_bp.route("/<task_id>", methods=["PUT"])
 @inject
 @validate_request(TaskUpdate)
 def update(
@@ -88,7 +88,7 @@ def update(
         return jsonify({"error": "Internal server error"}), 500
 
 
-@tasks_bp.route("/tasks/<task_id>", methods=["DELETE"])
+@tasks_bp.route("/<task_id>", methods=["DELETE"])
 @inject
 def delete(task_id: str, task_service: TaskService = Provide[Container.task_service]):
     try:
@@ -100,7 +100,7 @@ def delete(task_id: str, task_service: TaskService = Provide[Container.task_serv
         return jsonify({"error": "Internal server error"}), 500
 
 
-@tasks_bp.route("/tasks", methods=["GET"])
+@tasks_bp.route("/", methods=["GET"])
 @inject
 def list_tasks(task_service: TaskService = Provide[Container.task_service]):
     try:

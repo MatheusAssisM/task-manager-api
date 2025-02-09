@@ -2,7 +2,10 @@ from dependency_injector import containers, providers
 from pymongo import MongoClient
 from redis import StrictRedis
 from .services.task import TaskService
+from .services.auth import AuthService
+from .services.user import UserService
 from .repositories.task import TaskRepository
+from .repositories.user import UserRepository
 
 
 class Container(containers.DeclarativeContainer):
@@ -40,5 +43,26 @@ class Container(containers.DeclarativeContainer):
         ),
     )
 
+    user_repository = providers.Factory(
+        UserRepository,
+        collection=providers.Singleton(
+            lambda db: db.get_collection("users"), db=mongo_db
+        ),
+    )
+
     # Services
-    task_service = providers.Factory(TaskService, task_repository=task_repository)
+    auth_service = providers.Factory(
+        AuthService,
+        user_repository=user_repository,
+    )
+
+    user_service = providers.Factory(
+        UserService,
+        user_repository=user_repository,
+        auth_service=auth_service,
+    )
+
+    task_service = providers.Factory(
+        TaskService,
+        task_repository=task_repository,
+    )

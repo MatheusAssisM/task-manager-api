@@ -2,6 +2,7 @@ from flask import Flask
 from src.config import Config
 from src.extensions import init_app
 from src.routes.task import tasks_bp  # Update this import
+from src.routes.auth import auth_bp
 
 
 def create_app(config_class=Config):
@@ -12,7 +13,8 @@ def create_app(config_class=Config):
     init_app(app)
 
     # Register blueprints
-    app.register_blueprint(tasks_bp)
+    app.register_blueprint(tasks_bp, url_prefix="/tasks")
+    app.register_blueprint(auth_bp, url_prefix="/auth")
 
     return app
 

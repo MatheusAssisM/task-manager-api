@@ -22,3 +22,12 @@ class Config:
     REDIS_PORT = os.getenv("REDIS_PORT", "6379")
     REDIS_DB = os.getenv("REDIS_DB", "0")
     REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
+
+    # JWT Configuration
+    JWT_SECRET_KEY = os.getenv(
+        "JWT_SECRET_KEY", "your-super-secret-key-change-this-in-production"
+    )
+    JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES = int(
+        os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "30")
+    )
