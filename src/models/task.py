@@ -9,7 +9,7 @@ class Task:
         return {
             "title": self.title,
             "description": self.description,
-            "user_id": self.user_id
+            "user_id": self.user_id,
         }
 
     @staticmethod
@@ -18,5 +18,5 @@ class Task:
             id=str(data.get("_id")),
             title=data.get("title"),
             description=data.get("description"),
-            user_id=data.get("user_id")
+            user_id=data.get("user_id"),
         )

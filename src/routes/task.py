@@ -38,10 +38,12 @@ def validate_request(schema_class):
 def create(
     data: TaskCreate,
     current_user_id: str,
-    task_service: TaskService = Provide[Container.task_service]
+    task_service: TaskService = Provide[Container.task_service],
 ):
     try:
-        task_id = task_service.create_task(data.title, data.description, current_user_id)
+        task_id = task_service.create_task(
+            data.title, data.description, current_user_id
+        )
         return jsonify({"message": "Task created successfully", "id": task_id}), 201
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
@@ -55,7 +57,7 @@ def create(
 def retrieve(
     task_id: str,
     current_user_id: str,
-    task_service: TaskService = Provide[Container.task_service]
+    task_service: TaskService = Provide[Container.task_service],
 ):
     try:
         task = task_service.get_task(task_id, current_user_id)
@@ -97,7 +99,7 @@ def update(
 def delete(
     task_id: str,
     current_user_id: str,
-    task_service: TaskService = Provide[Container.task_service]
+    task_service: TaskService = Provide[Container.task_service],
 ):
     try:
         task = task_service.get_task(task_id, current_user_id)
@@ -116,8 +118,7 @@ def delete(
 @inject
 @require_auth
 def get_user_tasks(
-    current_user_id: str,
-    task_service: TaskService = Provide[Container.task_service]
+    current_user_id: str, task_service: TaskService = Provide[Container.task_service]
 ):
     try:
         tasks = task_service.get_user_tasks(current_user_id)

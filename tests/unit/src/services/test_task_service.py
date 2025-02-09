@@ -23,6 +23,7 @@ def task_repository():
 def user_service():
     return MagicMock()
 
+
 @pytest.fixture
 def task_service(task_repository, user_service):
     return TaskService(task_repository, user_service)
@@ -80,10 +81,14 @@ def test_create_task_with_empty_title(task_service):
         task_service.create_task(title, description, user_id)
 
 
-
 def test_get_task_success(task_service, valid_object_id):
     # Arrange
-    task = Task(title="Test Task", description="Test Description", user_id="test_user_id", id=valid_object_id)
+    task = Task(
+        title="Test Task",
+        description="Test Description",
+        user_id="test_user_id",
+        id=valid_object_id,
+    )
     task_service.task_repository.find_by_id.return_value = task
 
     # Act

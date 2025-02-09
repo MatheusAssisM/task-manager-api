@@ -17,7 +17,9 @@ def task_repository(mock_collection):
 
 @pytest.fixture
 def sample_task():
-    return Task(title="Test Task", description="Test Description", user_id="test_user_id")
+    return Task(
+        title="Test Task", description="Test Description", user_id="test_user_id"
+    )
 
 
 @pytest.fixture
