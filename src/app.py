@@ -1,9 +1,8 @@
 from flask import Flask
 from src.config import Config
 from src.extensions import init_app
-from src.routes.task import tasks_bp  # Update this import
+from src.routes.task import tasks_bp
 from src.routes.auth import auth_bp
-
 
 def create_app(config_class=Config):
     app = Flask(__name__)
