@@ -2,7 +2,9 @@ from ..models.task import Task
 from ..repositories.task import TaskRepository
 from ..services.user import UserService
 from bson.objectid import ObjectId
+from ..utils.logger import setup_logger
 
+logger = setup_logger('task_service')
 
 class TaskService:
     def __init__(self, task_repository: TaskRepository, user_service: UserService):
@@ -11,20 +13,25 @@ class TaskService:
 
     def create_task(self, title: str, description: str, user_id: str) -> dict:
         if not title or title.strip() == "":
+            logger.error(f"Attempted to create task with empty title for user {user_id}")
             raise ValueError("Title cannot be empty")
 
         # Verify if user exists
         self.user_service.get_user_by_id(user_id)
 
         task = Task(title=title, description=description, user_id=user_id)
-        return self.task_repository.create(task)
+        task_id = self.task_repository.create(task)
+        logger.info(f"Task created successfully: {task_id} for user {user_id}")
+        return task_id
 
     def get_task(self, task_id: str, user_id: str) -> dict | None:
         if not ObjectId.is_valid(task_id):
+            logger.error(f"Invalid task ID format: {task_id}")
             raise ValueError("Invalid task ID format")
 
         task = self.task_repository.find_by_id(task_id)
         if task and task.user_id != user_id:
+            logger.warning(f"Unauthorized access attempt to task {task_id} by user {user_id}")
             raise ValueError("Unauthorized access to task")
         return task
 
@@ -62,16 +69,20 @@ class TaskService:
 
     def delete_task(self, task_id: str, user_id: str) -> None:
         if not ObjectId.is_valid(task_id):
+            logger.error(f"Invalid task ID format: {task_id}")
             raise ValueError("Invalid task ID format")
 
         existing_task = self.task_repository.find_by_id(task_id)
         if existing_task is None:
+            logger.error(f"Attempt to delete non-existent task: {task_id}")
             raise ValueError("Task not found")
 
         if existing_task.user_id != user_id:
+            logger.warning(f"Unauthorized deletion attempt for task {task_id} by user {user_id}")
             raise ValueError("Unauthorized access to task")
 
         self.task_repository.delete(task_id)
+        logger.info(f"Task {task_id} deleted successfully by user {user_id}")
 
     def get_all_tasks(self) -> list[Task]:
         return self.task_repository.find_all()

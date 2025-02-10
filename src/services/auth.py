@@ -122,7 +122,7 @@ class AuthService:
         )
 
         # Send reset email
-        reset_url = f"http://localhost:5000/auth/reset-password?token={reset_token}"
+        reset_url = f"http://localhost:9000/reset-password?token={reset_token}"
         self.email_service.send_email(
             user.email,
             "Password Reset Request",
