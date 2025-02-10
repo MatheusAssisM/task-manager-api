@@ -97,7 +97,7 @@ def delete(
         return jsonify({"error": "Internal server error"}), 500
 
 
-@tasks_bp.route("/user/tasks", methods=["GET"])
+@tasks_bp.route("/", methods=["GET"])
 @inject
 @require_auth
 def get_user_tasks(task_service: TaskService = Provide[Container.task_service]):
