@@ -9,22 +9,28 @@ from src.routes.auth import auth_bp
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
-
+    
+    # Disable automatic slash behavior
+    app.url_map.strict_slashes = False
+    
+    # CORS configuration
     CORS(
         app,
+        origins=["http://localhost:9000"],
+        supports_credentials=True,
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+        expose_headers=["Content-Type", "Authorization"],
         resources={
-            r"/*": {
-                "origins": ["http://localhost:9000"],
-                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-                "allow_headers": ["Content-Type", "Authorization"],
-            }
-        },
+            r"/tasks*": {},  # Match all /tasks routes
+            r"/auth*": {}    # Match all /auth routes
+        }
     )
 
     # Initialize extensions and container
     init_app(app)
 
-    # Register blueprints
+    # Register blueprints (without trailing slashes)
     app.register_blueprint(tasks_bp, url_prefix="/tasks")
     app.register_blueprint(auth_bp, url_prefix="/auth")
 
