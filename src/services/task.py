@@ -64,6 +64,7 @@ class TaskService:
             title=updated_title,
             description=updated_description,
             user_id=existing_task.user_id,
+            completed=existing_task.completed  # Preserve the existing completed status
         )
         self.task_repository.update(task_id, task)
 

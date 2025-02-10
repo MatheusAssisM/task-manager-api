@@ -65,7 +65,7 @@ def update(
         if task is None:
             return jsonify({"error": "Task not found"}), 404
 
-        task_service.update_task(task_id, data.title, data.description)
+        task_service.update_task(task_id, data.title, data.description, g.current_user.id)
         return jsonify({"message": "Task updated successfully"}), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
