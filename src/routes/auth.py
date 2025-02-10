@@ -52,6 +52,9 @@ def login(data: UserLogin, auth_service: AuthService = Provide[Container.auth_se
             jsonify(
                 {
                     **token_data,
+                    "user": UserResponse(
+                        id=user.id, username=user.username, email=user.email
+                    ).model_dump(),
                 }
             ),
             200,
