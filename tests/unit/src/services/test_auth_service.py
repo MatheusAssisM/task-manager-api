@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch
 from datetime import datetime, timedelta
+import json
 from jose import jwt
 
 from src.config import Config
@@ -14,8 +15,23 @@ def user_repository():
 
 
 @pytest.fixture
-def auth_service(user_repository):
-    return AuthService(user_repository)
+def redis_client():
+    mock = Mock()
+    # Set up scan_iter to return empty list by default
+    mock.scan_iter.return_value = []
+    # Set up get to return None by default
+    mock.get.return_value = None
+    return mock
+
+
+@pytest.fixture
+def email_service():
+    return Mock()
+
+
+@pytest.fixture
+def auth_service(user_repository, redis_client, email_service):
+    return AuthService(user_repository, redis_client, email_service)
 
 
 @pytest.fixture
@@ -56,9 +72,11 @@ def test_register_existing_email(auth_service, user_repository, test_user):
         )
 
 
-def test_authenticate_success(auth_service, user_repository, test_user):
+def test_authenticate_success(auth_service, user_repository, test_user, redis_client):
     # Arrange
     user_repository.find_by_email.return_value = test_user
+    redis_client.scan_iter.return_value = []  # No existing tokens
+    
     with patch("bcrypt.checkpw", return_value=True):
         # Act
         authenticated_user = auth_service.authenticate(
@@ -113,7 +131,7 @@ def test_create_access_token(auth_service, test_user):
     assert decoded["email"] == test_user.email
 
 
-def test_validate_token_success(auth_service, user_repository, test_user):
+def test_validate_token_success(auth_service, user_repository, test_user, redis_client):
     # Arrange
     token = jwt.encode(
         {
@@ -125,6 +143,15 @@ def test_validate_token_success(auth_service, user_repository, test_user):
         Config.JWT_SECRET_KEY,
         algorithm=Config.JWT_ALGORITHM,
     )
+    
+    # Mock Redis to return cached user data
+    cached_data = json.dumps({
+        "user_id": test_user.id,
+        "email": test_user.email,
+        "username": test_user.username
+    }).encode('utf-8')
+    redis_client.get.return_value = cached_data
+    
     user_repository.find_by_id.return_value = test_user
 
     # Act
@@ -134,7 +161,7 @@ def test_validate_token_success(auth_service, user_repository, test_user):
     assert validated_user == test_user
 
 
-def test_validate_token_expired(auth_service):
+def test_validate_token_expired(auth_service, redis_client):
     # Arrange
     token = jwt.encode(
         {
@@ -145,6 +172,7 @@ def test_validate_token_expired(auth_service):
         Config.JWT_SECRET_KEY,
         algorithm=Config.JWT_ALGORITHM,
     )
+    redis_client.get.return_value = None
 
     # Act
     validated_user = auth_service.validate_token(token)
@@ -153,7 +181,10 @@ def test_validate_token_expired(auth_service):
     assert validated_user is None
 
 
-def test_validate_token_invalid(auth_service):
+def test_validate_token_invalid(auth_service, redis_client):
+    # Arrange
+    redis_client.get.return_value = None
+    
     # Act
     validated_user = auth_service.validate_token("invalid_token")
 

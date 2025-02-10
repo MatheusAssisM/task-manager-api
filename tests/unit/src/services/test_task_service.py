@@ -5,11 +5,6 @@ from src.models.task import Task
 
 
 @pytest.fixture
-def sample_task_dict():
-    return {"_id": "123", "title": "Test Task", "description": "Test Description"}
-
-
-@pytest.fixture
 def valid_object_id():
     return "507f1f77bcf86cd799439011"
 
@@ -34,40 +29,34 @@ def test_create_task_success(task_service):
     title = "New Task"
     description = "New Description"
     user_id = "test_user_id"
-    expected_result = {
-        "_id": "507f1f77bcf86cd799439011",
-        "title": title,
-        "description": description,
-        "user_id": user_id,
-    }
-    task_service.task_repository.create.return_value = expected_result
+    task_service.task_repository.create.return_value = "507f1f77bcf86cd799439011"
 
     # Act
     result = task_service.create_task(title, description, user_id)
 
     # Assert
-    assert result == expected_result
+    assert isinstance(result, str)
     task_service.task_repository.create.assert_called_once()
 
 
 def test_update_task_not_found(task_service, valid_object_id):
     # Arrange
     task_service.task_repository.find_by_id.return_value = None
+    user_id = "test_user_id"
 
     # Act & Assert
     with pytest.raises(ValueError, match="Task not found"):
-        task_service.update_task(
-            valid_object_id, "Updated Title", "Updated Description"
-        )
+        task_service.update_task(valid_object_id, "Updated Title", "Updated Description", user_id)
 
 
 def test_delete_task_not_found(task_service, valid_object_id):
     # Arrange
     task_service.task_repository.find_by_id.return_value = None
+    user_id = "test_user_id"
 
     # Act & Assert
     with pytest.raises(ValueError, match="Task not found"):
-        task_service.delete_task(valid_object_id)
+        task_service.delete_task(valid_object_id, user_id)
 
 
 def test_create_task_with_empty_title(task_service):
@@ -111,15 +100,19 @@ def test_get_task_invalid_id(task_service):
         task_service.get_task(invalid_id, user_id)
 
 
-def test_get_task_not_found(task_service, valid_object_id):
+def test_get_task_unauthorized(task_service, valid_object_id):
     # Arrange
-    task_service.task_repository.find_by_id.return_value = None
+    task = Task(
+        title="Test Task",
+        description="Test Description",
+        user_id="different_user_id",
+        id=valid_object_id,
+    )
+    task_service.task_repository.find_by_id.return_value = task
 
-    # Act
-    result = task_service.get_task(valid_object_id, "test_user_id")
-
-    # Assert
-    assert result is None
+    # Act & Assert
+    with pytest.raises(ValueError, match="Unauthorized access to task"):
+        task_service.get_task(valid_object_id, "test_user_id")
 
 
 def test_get_all_tasks_success(task_service):
@@ -142,18 +135,18 @@ def test_get_all_tasks_success(task_service):
 
 def test_update_task_success(task_service, valid_object_id):
     # Arrange
-    existing_task = {
-        "_id": valid_object_id,
-        "title": "Old Title",
-        "description": "Old Description",
-        "user_id": "test_user_id",
-    }
-    task_service.task_repository.find_by_id.return_value = Task.from_dict(existing_task)
+    existing_task = Task(
+        id=valid_object_id,
+        title="Old Title",
+        description="Old Description",
+        user_id="test_user_id",
+    )
+    task_service.task_repository.find_by_id.return_value = existing_task
     new_title = "Updated Task"
     new_description = "Updated Description"
 
     # Act
-    task_service.update_task(valid_object_id, new_title, new_description)
+    task_service.update_task(valid_object_id, new_title, new_description, "test_user_id")
 
     # Assert
     task_service.task_repository.update.assert_called_once()
@@ -161,15 +154,16 @@ def test_update_task_success(task_service, valid_object_id):
 
 def test_delete_task_success(task_service, valid_object_id):
     # Arrange
-    existing_task = {
-        "_id": valid_object_id,
-        "title": "Task",
-        "description": "Description",
-    }
+    existing_task = Task(
+        id=valid_object_id,
+        title="Task",
+        description="Description",
+        user_id="test_user_id",
+    )
     task_service.task_repository.find_by_id.return_value = existing_task
 
     # Act
-    task_service.delete_task(valid_object_id)
+    task_service.delete_task(valid_object_id, "test_user_id")
 
     # Assert
     task_service.task_repository.delete.assert_called_once_with(valid_object_id)
@@ -181,7 +175,7 @@ def test_update_task_invalid_id(task_service):
 
     # Act & Assert
     with pytest.raises(ValueError, match="Invalid task ID format"):
-        task_service.update_task(invalid_id, "Title", "Description")
+        task_service.update_task(invalid_id, "Title", "Description", "test_user_id")
 
 
 def test_delete_task_invalid_id(task_service):
@@ -190,4 +184,34 @@ def test_delete_task_invalid_id(task_service):
 
     # Act & Assert
     with pytest.raises(ValueError, match="Invalid task ID format"):
-        task_service.delete_task(invalid_id)
+        task_service.delete_task(invalid_id, "test_user_id")
+
+
+def test_update_task_unauthorized(task_service, valid_object_id):
+    # Arrange
+    existing_task = Task(
+        id=valid_object_id,
+        title="Task",
+        description="Description",
+        user_id="different_user_id",
+    )
+    task_service.task_repository.find_by_id.return_value = existing_task
+
+    # Act & Assert
+    with pytest.raises(ValueError, match="Unauthorized access to task"):
+        task_service.update_task(valid_object_id, "New Title", "New Description", "test_user_id")
+
+
+def test_delete_task_unauthorized(task_service, valid_object_id):
+    # Arrange
+    existing_task = Task(
+        id=valid_object_id,
+        title="Task",
+        description="Description",
+        user_id="different_user_id",
+    )
+    task_service.task_repository.find_by_id.return_value = existing_task
+
+    # Act & Assert
+    with pytest.raises(ValueError, match="Unauthorized access to task"):
+        task_service.delete_task(valid_object_id, "test_user_id")

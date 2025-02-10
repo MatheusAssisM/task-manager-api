@@ -26,7 +26,7 @@ def metrics_service(metrics_repository, task_repository, user_repository):
     return MetricsService(metrics_repository, task_repository, user_repository)
 
 
-def test_get_metrics_success(metrics_service, task_repository, user_repository):
+def test_get_metrics_success(metrics_service, task_repository, user_repository, metrics_repository):
     # Arrange
     tasks = [
         Task(title="Task 1", description="Desc 1", user_id="user1", completed=True),
@@ -49,9 +49,10 @@ def test_get_metrics_success(metrics_service, task_repository, user_repository):
     assert result.total_tasks == 3
     assert result.completed_tasks == 1
     assert result.active_tasks == 2
+    metrics_repository.update_metrics.assert_called_once()
 
 
-def test_get_metrics_no_data(metrics_service, task_repository, user_repository):
+def test_get_metrics_no_data(metrics_service, task_repository, user_repository, metrics_repository):
     # Arrange
     task_repository.find_all.return_value = []
     user_repository.find_all.return_value = []
@@ -64,6 +65,7 @@ def test_get_metrics_no_data(metrics_service, task_repository, user_repository):
     assert result.total_tasks == 0
     assert result.completed_tasks == 0
     assert result.active_tasks == 0
+    metrics_repository.update_metrics.assert_called_once()
 
 
 def test_get_metrics_with_error(metrics_service, task_repository, metrics_repository):
@@ -78,3 +80,4 @@ def test_get_metrics_with_error(metrics_service, task_repository, metrics_reposi
     # Assert
     assert result == fallback_metrics
     metrics_repository.get_metrics.assert_called_once()
+    metrics_repository.update_metrics.assert_not_called()
