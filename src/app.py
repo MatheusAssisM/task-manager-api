@@ -4,6 +4,7 @@ from src.config import Config
 from src.extensions import init_app
 from src.routes.task import tasks_bp
 from src.routes.auth import auth_bp
+from src.routes.metrics import metrics_bp
 
 
 def create_app(config_class=Config):
@@ -45,6 +46,7 @@ def create_app(config_class=Config):
     # Register blueprints (without trailing slashes)
     app.register_blueprint(tasks_bp, url_prefix="/tasks")
     app.register_blueprint(auth_bp, url_prefix="/auth")
+    app.register_blueprint(metrics_bp, url_prefix="/metrics")
 
     return app
 

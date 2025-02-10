@@ -5,8 +5,10 @@ from .services.task import TaskService
 from .services.auth import AuthService
 from .services.user import UserService
 from .services.email import EmailService
+from .services.metrics import MetricsService
 from .repositories.task import TaskRepository
 from .repositories.user import UserRepository
+from .repositories.metrics import MetricsRepository
 
 
 class Container(containers.DeclarativeContainer):
@@ -37,6 +39,13 @@ class Container(containers.DeclarativeContainer):
     )
 
     # Repositories
+    metrics_repository = providers.Factory(
+        MetricsRepository,
+        collection=providers.Singleton(
+            lambda db: db.get_collection("metrics"), db=mongo_db
+        ),
+    )
+
     task_repository = providers.Factory(
         TaskRepository,
         collection=providers.Singleton(
@@ -71,4 +80,11 @@ class Container(containers.DeclarativeContainer):
         TaskService,
         task_repository=task_repository,
         user_service=user_service,
+    )
+
+    metrics_service = providers.Factory(
+        MetricsService,
+        metrics_repository=metrics_repository,
+        task_repository=task_repository,
+        user_repository=user_repository,
     )
