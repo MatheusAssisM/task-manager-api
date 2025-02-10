@@ -2,6 +2,7 @@ from dependency_injector import containers, providers
 from pymongo import MongoClient
 from redis import StrictRedis
 from .services.task import TaskService
+from .services.cached_task import CachedTaskService
 from .services.auth import AuthService
 from .services.user import UserService
 from .services.email import EmailService
@@ -76,10 +77,18 @@ class Container(containers.DeclarativeContainer):
         auth_service=auth_service,
     )
 
-    task_service = providers.Factory(
+    # Core task service
+    core_task_service = providers.Factory(
         TaskService,
         task_repository=task_repository,
         user_service=user_service,
+    )
+
+    # Cached task service that wraps the core task service
+    task_service = providers.Factory(
+        CachedTaskService,
+        task_service=core_task_service,
+        redis_client=redis_client,
     )
 
     metrics_service = providers.Factory(
