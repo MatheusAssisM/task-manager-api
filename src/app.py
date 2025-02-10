@@ -13,17 +13,29 @@ def create_app(config_class=Config):
     # Disable automatic slash behavior
     app.url_map.strict_slashes = False
     
-    # CORS configuration
+    # Updated CORS configuration
     CORS(
         app,
         origins=["http://localhost:9000"],
         supports_credentials=True,
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-        expose_headers=["Content-Type", "Authorization"],
+        allow_headers=[
+            "Content-Type",
+            "Authorization",
+            "X-Requested-With",
+            "Accept",
+            "Origin",
+            "Access-Control-Request-Method",
+            "Access-Control-Request-Headers"
+        ],
+        expose_headers=[
+            "Content-Type",
+            "Authorization",
+            "Access-Control-Allow-Origin",
+            "Access-Control-Allow-Credentials"
+        ],
         resources={
-            r"/tasks*": {},  # Match all /tasks routes
-            r"/auth*": {}    # Match all /auth routes
+            r"/*": {},  # Match all task routes including sub-routes
         }
     )
 

@@ -10,3 +10,7 @@ class TaskCreate(BaseModel):
 class TaskUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = Field(None, min_length=1, max_length=500)
+
+
+class TaskStatusUpdate(BaseModel):
+    completed: bool

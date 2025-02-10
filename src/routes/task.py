@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, g
 from dependency_injector.wiring import inject, Provide
 from src.container import Container
 from src.services.task import TaskService
-from src.schemas.task import TaskCreate, TaskUpdate
+from src.schemas.task import TaskCreate, TaskUpdate, TaskStatusUpdate
 from src.middleware.auth import require_auth
 from src.utils.decorators import validate_request
 from src.utils.logger import setup_logger
@@ -108,4 +108,30 @@ def get_user_tasks(task_service: TaskService = Provide[Container.task_service]):
         return jsonify(tasks_response), 200
     except Exception as e:
         logger.exception("Error retrieving user tasks")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@tasks_bp.route("/<task_id>/status", methods=["PATCH"])
+@inject
+@require_auth
+@validate_request(TaskStatusUpdate)
+def update_status(
+    data: TaskStatusUpdate,
+    task_id: str,
+    task_service: TaskService = Provide[Container.task_service],
+):
+    try:
+        task = task_service.get_task(task_id, g.current_user.id)
+        if task is None:
+            logger.warning(f"Attempt to update status of non-existent task: {task_id}")
+            return jsonify({"error": "Task not found"}), 404
+
+        task_service.update_task_status(task_id, bool(data.completed), g.current_user.id)
+        logger.info(f"Successfully updated completion status of task {task_id} to {data.completed}")
+        return jsonify({"message": "Task status updated successfully"}), 200
+    except ValueError as e:
+        logger.error(f"Error updating task status: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.exception(f"Unexpected error updating task status")
         return jsonify({"error": "Internal server error"}), 500

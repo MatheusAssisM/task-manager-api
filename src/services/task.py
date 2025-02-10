@@ -67,6 +67,29 @@ class TaskService:
         )
         self.task_repository.update(task_id, task)
 
+    def update_task_status(self, task_id: str, completed: bool, user_id: str) -> None:
+        if not ObjectId.is_valid(task_id):
+            logger.error(f"Invalid task ID format: {task_id}")
+            raise ValueError("Invalid task ID format")
+
+        existing_task = self.task_repository.find_by_id(task_id)
+        if existing_task is None:
+            logger.error(f"Task not found: {task_id}")
+            raise ValueError("Task not found")
+
+        if existing_task.user_id != user_id:
+            logger.warning(f"Unauthorized status update attempt for task {task_id} by user {user_id}")
+            raise ValueError("Unauthorized access to task")
+
+        task = Task(
+            title=existing_task.title,
+            description=existing_task.description,
+            user_id=existing_task.user_id,
+            completed=completed
+        )
+        self.task_repository.update(task_id, task)
+        logger.info(f"Task {task_id} completed status updated to {completed} by user {user_id}")
+
     def delete_task(self, task_id: str, user_id: str) -> None:
         if not ObjectId.is_valid(task_id):
             logger.error(f"Invalid task ID format: {task_id}")
