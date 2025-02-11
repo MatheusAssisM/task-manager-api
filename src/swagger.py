@@ -29,14 +29,22 @@ swagger_config = {
                         "required": True,
                         "schema": {
                             "type": "object",
+                            "required": ["username", "email", "password"],
                             "properties": {
-                                "username": {"type": "string", "example": "john_doe"},
+                                "username": {
+                                    "type": "string",
+                                    "minLength": 3,
+                                    "maxLength": 50,
+                                    "example": "john_doe",
+                                },
                                 "email": {
                                     "type": "string",
+                                    "format": "email",
                                     "example": "john@example.com",
                                 },
                                 "password": {
                                     "type": "string",
+                                    "minLength": 6,
                                     "example": "securepass123",
                                 },
                             },
@@ -44,7 +52,23 @@ swagger_config = {
                     }
                 ],
                 "responses": {
-                    "201": {"description": "User registered successfully"},
+                    "201": {
+                        "description": "User registered successfully",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {"type": "string"},
+                                "user": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {"type": "string"},
+                                        "username": {"type": "string"},
+                                        "email": {"type": "string"},
+                                    },
+                                },
+                            },
+                        },
+                    },
                     "400": {"description": "Invalid input"},
                 },
             }
@@ -60,9 +84,11 @@ swagger_config = {
                         "required": True,
                         "schema": {
                             "type": "object",
+                            "required": ["email", "password"],
                             "properties": {
                                 "email": {
                                     "type": "string",
+                                    "format": "email",
                                     "example": "john@example.com",
                                 },
                                 "password": {
@@ -74,8 +100,106 @@ swagger_config = {
                     }
                 ],
                 "responses": {
-                    "200": {"description": "Login successful"},
+                    "200": {
+                        "description": "Login successful",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "access_token": {"type": "string"},
+                                "expires_in": {"type": "integer"},
+                                "user": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {"type": "string"},
+                                        "username": {"type": "string"},
+                                        "email": {"type": "string"},
+                                    },
+                                },
+                            },
+                        },
+                    },
                     "401": {"description": "Invalid credentials"},
+                },
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "tags": ["Authentication"],
+                "summary": "Logout current user",
+                "security": [{"Bearer": []}],
+                "responses": {
+                    "200": {
+                        "description": "Successfully logged out",
+                        "schema": {
+                            "type": "object",
+                            "properties": {"message": {"type": "string"}},
+                        },
+                    },
+                    "401": {"description": "Unauthorized"},
+                },
+            }
+        },
+        "/auth/forgot-password": {
+            "post": {
+                "tags": ["Authentication"],
+                "summary": "Request password reset",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "required": True,
+                        "schema": {
+                            "type": "object",
+                            "required": ["email"],
+                            "properties": {
+                                "email": {
+                                    "type": "string",
+                                    "format": "email",
+                                    "example": "john@example.com",
+                                }
+                            },
+                        },
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password reset email sent",
+                        "schema": {
+                            "type": "object",
+                            "properties": {"message": {"type": "string"}},
+                        },
+                    }
+                },
+            }
+        },
+        "/auth/reset-password": {
+            "post": {
+                "tags": ["Authentication"],
+                "summary": "Reset password with token",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "required": True,
+                        "schema": {
+                            "type": "object",
+                            "required": ["token", "new_password"],
+                            "properties": {
+                                "token": {"type": "string"},
+                                "new_password": {"type": "string", "minLength": 6},
+                            },
+                        },
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password reset successful",
+                        "schema": {
+                            "type": "object",
+                            "properties": {"message": {"type": "string"}},
+                        },
+                    },
+                    "400": {"description": "Invalid token or password"},
                 },
             }
         },
@@ -85,7 +209,27 @@ swagger_config = {
                 "summary": "Get all tasks for authenticated user",
                 "security": [{"Bearer": []}],
                 "responses": {
-                    "200": {"description": "List of tasks"},
+                    "200": {
+                        "description": "List of tasks",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "tasks": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {"type": "string"},
+                                            "title": {"type": "string"},
+                                            "description": {"type": "string"},
+                                            "user_id": {"type": "string"},
+                                            "completed": {"type": "boolean"},
+                                        },
+                                    },
+                                }
+                            },
+                        },
+                    },
                     "401": {"description": "Unauthorized"},
                 },
             },
@@ -100,13 +244,18 @@ swagger_config = {
                         "required": True,
                         "schema": {
                             "type": "object",
+                            "required": ["title", "description"],
                             "properties": {
                                 "title": {
                                     "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100,
                                     "example": "Complete project",
                                 },
                                 "description": {
                                     "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 500,
                                     "example": "Finish the documentation",
                                 },
                             },
@@ -114,7 +263,16 @@ swagger_config = {
                     }
                 ],
                 "responses": {
-                    "201": {"description": "Task created"},
+                    "201": {
+                        "description": "Task created",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {"type": "string"},
+                                "id": {"type": "string"},
+                            },
+                        },
+                    },
                     "400": {"description": "Invalid input"},
                     "401": {"description": "Unauthorized"},
                 },
@@ -135,7 +293,19 @@ swagger_config = {
                 "summary": "Get a specific task",
                 "security": [{"Bearer": []}],
                 "responses": {
-                    "200": {"description": "Task details"},
+                    "200": {
+                        "description": "Task details",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "id": {"type": "string"},
+                                "title": {"type": "string"},
+                                "description": {"type": "string"},
+                                "user_id": {"type": "string"},
+                                "completed": {"type": "boolean"},
+                            },
+                        },
+                    },
                     "404": {"description": "Task not found"},
                     "401": {"description": "Unauthorized"},
                 },
@@ -152,14 +322,28 @@ swagger_config = {
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "title": {"type": "string"},
-                                "description": {"type": "string"},
+                                "title": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100,
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 500,
+                                },
                             },
                         },
                     }
                 ],
                 "responses": {
-                    "200": {"description": "Task updated"},
+                    "200": {
+                        "description": "Task updated",
+                        "schema": {
+                            "type": "object",
+                            "properties": {"message": {"type": "string"}},
+                        },
+                    },
                     "404": {"description": "Task not found"},
                     "401": {"description": "Unauthorized"},
                 },
@@ -169,7 +353,13 @@ swagger_config = {
                 "summary": "Delete a task",
                 "security": [{"Bearer": []}],
                 "responses": {
-                    "200": {"description": "Task deleted"},
+                    "200": {
+                        "description": "Task deleted",
+                        "schema": {
+                            "type": "object",
+                            "properties": {"message": {"type": "string"}},
+                        },
+                    },
                     "404": {"description": "Task not found"},
                     "401": {"description": "Unauthorized"},
                 },
@@ -196,12 +386,19 @@ swagger_config = {
                         "required": True,
                         "schema": {
                             "type": "object",
+                            "required": ["completed"],
                             "properties": {"completed": {"type": "boolean"}},
                         },
                     }
                 ],
                 "responses": {
-                    "200": {"description": "Task status updated"},
+                    "200": {
+                        "description": "Task status updated",
+                        "schema": {
+                            "type": "object",
+                            "properties": {"message": {"type": "string"}},
+                        },
+                    },
                     "404": {"description": "Task not found"},
                     "401": {"description": "Unauthorized"},
                 },
@@ -213,8 +410,26 @@ swagger_config = {
                 "summary": "Get system metrics",
                 "security": [{"Bearer": []}],
                 "responses": {
-                    "200": {"description": "System metrics"},
+                    "200": {
+                        "description": "System metrics",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "total_users": {"type": "integer"},
+                                "total_tasks": {"type": "integer"},
+                                "completed_tasks": {"type": "integer"},
+                                "active_tasks": {"type": "integer"},
+                            },
+                        },
+                    },
                     "401": {"description": "Unauthorized"},
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {"error": {"type": "string"}},
+                        },
+                    },
                 },
             }
         },
