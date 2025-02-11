@@ -1,11 +1,22 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from dependency_injector.wiring import inject, Provide
 from src.container import Container
 from src.services.auth import AuthService
-from src.schemas.user import UserRegister, UserLogin, UserResponse
+from src.schemas.user import (
+    UserRegister,
+    UserLogin,
+    UserResponse,
+    UserRegisterResponse,
+    UserLoginResponse,
+    UserLogoutResponse,
+    PasswordResetRequest,
+    PasswordResetRequestResponse,
+    PasswordReset,
+    PasswordResetResponse,
+)
+from src.schemas.common import ErrorResponse, UnauthorizedResponse
 from src.utils.decorators import validate_request
 from src.middleware.auth import require_auth
-from flask import g
 
 
 auth_bp = Blueprint("auth", __name__)
@@ -23,19 +34,18 @@ def register(
         )
         return (
             jsonify(
-                {
-                    "message": "User registered successfully",
-                    "user": UserResponse(
+                UserRegisterResponse(
+                    user=UserResponse(
                         id=user.id, username=user.username, email=user.email
-                    ).model_dump(),
-                }
+                    )
+                ).model_dump()
             ),
             201,
         )
     except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify(ErrorResponse(error=str(e)).model_dump()), 400
     except Exception as e:
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify(ErrorResponse(error="Internal server error").model_dump()), 500
 
 
 @auth_bp.route("/login", methods=["POST"])
@@ -45,22 +55,26 @@ def login(data: UserLogin, auth_service: AuthService = Provide[Container.auth_se
     try:
         user = auth_service.authenticate(data.email, data.password)
         if not user:
-            return jsonify({"error": "Invalid credentials"}), 401
+            return (
+                jsonify(UnauthorizedResponse(error="Invalid credentials").model_dump()),
+                401,
+            )
 
         token_data = auth_service.create_access_token(user)
         return (
             jsonify(
-                {
-                    **token_data,
-                    "user": UserResponse(
+                UserLoginResponse(
+                    access_token=token_data["access_token"],
+                    expires_in=token_data["expires_in"],
+                    user=UserResponse(
                         id=user.id, username=user.username, email=user.email
-                    ).model_dump(),
-                }
+                    ),
+                ).model_dump()
             ),
             200,
         )
     except Exception as e:
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify(ErrorResponse(error="Internal server error").model_dump()), 500
 
 
 @auth_bp.route("/logout", methods=["POST"])
@@ -69,40 +83,33 @@ def login(data: UserLogin, auth_service: AuthService = Provide[Container.auth_se
 def logout(auth_service: AuthService = Provide[Container.auth_service]):
     token = g.token
     if auth_service.logout(token):
-        return jsonify({"message": "Successfully logged out"}), 200
-    return jsonify({"error": "Invalid or expired token"}), 401
+        return jsonify(UserLogoutResponse().model_dump()), 200
+    return (
+        jsonify(UnauthorizedResponse(error="Invalid or expired token").model_dump()),
+        401,
+    )
 
 
 @auth_bp.route("/forgot-password", methods=["POST"])
 @inject
-def forgot_password(auth_service: AuthService = Provide[Container.auth_service]):
-    data = request.get_json()
-    email = data.get("email")
-
-    if not email:
-        return jsonify({"error": "Email is required"}), 400
-
-    auth_service.request_password_reset(email)
-    return (
-        jsonify(
-            {
-                "message": "If an account exists with this email, you will receive password reset instructions."
-            }
-        ),
-        200,
-    )
+@validate_request(PasswordResetRequest)
+def forgot_password(
+    data: PasswordResetRequest,
+    auth_service: AuthService = Provide[Container.auth_service],
+):
+    auth_service.request_password_reset(data.email)
+    return jsonify(PasswordResetRequestResponse().model_dump()), 200
 
 
 @auth_bp.route("/reset-password", methods=["POST"])
 @inject
-def reset_password(auth_service: AuthService = Provide[Container.auth_service]):
-    data = request.get_json()
-    token = data.get("token")
-    new_password = data.get("new_password")
-
-    if not token or not new_password:
-        return jsonify({"error": "Token and new password are required"}), 400
-
-    if auth_service.reset_password(token, new_password):
-        return jsonify({"message": "Password successfully reset"}), 200
-    return jsonify({"error": "Invalid or expired reset token"}), 400
+@validate_request(PasswordReset)
+def reset_password(
+    data: PasswordReset, auth_service: AuthService = Provide[Container.auth_service]
+):
+    if auth_service.reset_password(data.token, data.new_password):
+        return jsonify(PasswordResetResponse().model_dump()), 200
+    return (
+        jsonify(ErrorResponse(error="Invalid or expired reset token").model_dump()),
+        400,
+    )
