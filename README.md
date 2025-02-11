@@ -86,6 +86,22 @@ If you prefer to run the application locally without Docker:
    ```
    The API will be available at `http://localhost:8000`
 
+## API Documentation
+
+The API is documented using OpenAPI/Swagger. You can access the interactive API documentation at:
+
+- Local development: `http://localhost:8000/api/docs`
+- Docker: Same URL after starting the containers
+
+The Swagger UI provides:
+- Interactive API documentation
+- Request/response examples
+- API endpoint testing interface
+- Authentication flow documentation
+- Model schemas and validation rules
+
+The raw Swagger JSON specification is available at `/api/docs`.
+
 ## API Endpoints
 
 ### Authentication

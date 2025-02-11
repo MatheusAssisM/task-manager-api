@@ -1,20 +1,20 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
+from flask_swagger_ui import get_swaggerui_blueprint
 from src.config import Config
 from src.extensions import init_app
 from src.routes.task import tasks_bp
 from src.routes.auth import auth_bp
 from src.routes.metrics import metrics_bp
+from src.swagger import swagger_config
 
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
-    
-    # Disable automatic slash behavior
+
     app.url_map.strict_slashes = False
     
-    # Updated CORS configuration
     CORS(
         app,
         origins=["http://localhost:9000"],
@@ -36,22 +36,34 @@ def create_app(config_class=Config):
             "Access-Control-Allow-Credentials"
         ],
         resources={
-            r"/*": {},  # Match all task routes including sub-routes
+            r"/*": {},
         }
     )
 
-    # Initialize extensions and container
     init_app(app)
 
-    # Register blueprints (without trailing slashes)
     app.register_blueprint(tasks_bp, url_prefix="/tasks")
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(metrics_bp, url_prefix="/metrics")
 
+    SWAGGER_URL = '/api/docs'
+    swaggerui_blueprint = get_swaggerui_blueprint(
+        SWAGGER_URL,
+        None,
+        config={
+            'app_name': "Task Manager API",
+            'spec': swagger_config
+        }
+    )
+    app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
+
+    @app.route('/api/swagger.json')
+    def swagger_json():
+        return jsonify(swagger_config)
+
     return app
 
 
-# Create the application instance
 app = create_app()
 
 if __name__ == "__main__":
