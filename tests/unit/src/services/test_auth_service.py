@@ -76,7 +76,7 @@ def test_authenticate_success(auth_service, user_repository, test_user, redis_cl
     # Arrange
     user_repository.find_by_email.return_value = test_user
     redis_client.scan_iter.return_value = []  # No existing tokens
-    
+
     with patch("bcrypt.checkpw", return_value=True):
         # Act
         authenticated_user = auth_service.authenticate(
@@ -143,15 +143,17 @@ def test_validate_token_success(auth_service, user_repository, test_user, redis_
         Config.JWT_SECRET_KEY,
         algorithm=Config.JWT_ALGORITHM,
     )
-    
+
     # Mock Redis to return cached user data
-    cached_data = json.dumps({
-        "user_id": test_user.id,
-        "email": test_user.email,
-        "username": test_user.username
-    }).encode('utf-8')
+    cached_data = json.dumps(
+        {
+            "user_id": test_user.id,
+            "email": test_user.email,
+            "username": test_user.username,
+        }
+    ).encode("utf-8")
     redis_client.get.return_value = cached_data
-    
+
     user_repository.find_by_id.return_value = test_user
 
     # Act
@@ -184,9 +186,75 @@ def test_validate_token_expired(auth_service, redis_client):
 def test_validate_token_invalid(auth_service, redis_client):
     # Arrange
     redis_client.get.return_value = None
-    
+
     # Act
     validated_user = auth_service.validate_token("invalid_token")
 
     # Assert
     assert validated_user is None
+
+
+def test_cleanup_previous_tokens(auth_service, redis_client, test_user):
+    # Arrange
+    # Mock Redis to return multiple tokens for the test user
+    token1 = f"token:123"
+    token2 = f"token:456"
+    redis_client.scan_iter.return_value = [token1, token2]
+
+    # Setup mock data for each token
+    token1_data = json.dumps(
+        {
+            "user_id": test_user.id,
+            "email": test_user.email,
+            "username": test_user.username,
+        }
+    ).encode("utf-8")
+    token2_data = json.dumps(
+        {
+            "user_id": "other_user_id",
+            "email": "other@example.com",
+            "username": "other_user",
+        }
+    ).encode("utf-8")
+
+    def mock_get(key):
+        if key == token1:
+            return token1_data
+        if key == token2:
+            return token2_data
+        return None
+
+    redis_client.get.side_effect = mock_get
+
+    # Act
+    auth_service._cleanup_previous_tokens(test_user.id)
+
+    # Assert
+    # Should only delete token1 which belongs to test_user
+    redis_client.delete.assert_called_once_with(token1)
+
+
+def test_logout_success(auth_service, redis_client):
+    # Arrange
+    token = "valid_token"
+    redis_client.delete.return_value = 1  # Redis returns 1 when key is deleted
+
+    # Act
+    result = auth_service.logout(token)
+
+    # Assert
+    assert result is True
+    redis_client.delete.assert_called_once_with(f"token:{token}")
+
+
+def test_logout_token_not_found(auth_service, redis_client):
+    # Arrange
+    token = "invalid_token"
+    redis_client.delete.return_value = 0  # Redis returns 0 when key doesn't exist
+
+    # Act
+    result = auth_service.logout(token)
+
+    # Assert
+    assert result is False
+    redis_client.delete.assert_called_once_with(f"token:{token}")

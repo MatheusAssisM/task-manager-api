@@ -52,7 +52,9 @@ def test_update_task_not_found(task_service, valid_object_id):
 
     # Act & Assert
     with pytest.raises(ValueError, match="Task not found"):
-        task_service.update_task(valid_object_id, "Updated Title", "Updated Description", user_id)
+        task_service.update_task(
+            valid_object_id, "Updated Title", "Updated Description", user_id
+        )
 
 
 def test_delete_task_not_found(task_service, valid_object_id):
@@ -146,14 +148,16 @@ def test_update_task_success(task_service, valid_object_id):
         title="Old Title",
         description="Old Description",
         user_id="test_user_id",
-        completed=True
+        completed=True,
     )
     task_service.task_repository.find_by_id.return_value = existing_task
     new_title = "Updated Task"
     new_description = "Updated Description"
 
     # Act
-    task_service.update_task(valid_object_id, new_title, new_description, "test_user_id")
+    task_service.update_task(
+        valid_object_id, new_title, new_description, "test_user_id"
+    )
 
     # Assert
     task_service.task_repository.update.assert_called_once()
@@ -211,7 +215,9 @@ def test_update_task_unauthorized(task_service, valid_object_id):
 
     # Act & Assert
     with pytest.raises(ValueError, match="Unauthorized access to task"):
-        task_service.update_task(valid_object_id, "New Title", "New Description", "test_user_id")
+        task_service.update_task(
+            valid_object_id, "New Title", "New Description", "test_user_id"
+        )
 
 
 def test_delete_task_unauthorized(task_service, valid_object_id):
@@ -236,7 +242,7 @@ def test_update_task_status_success(task_service, valid_object_id):
         title="Task",
         description="Description",
         user_id="test_user_id",
-        completed=False
+        completed=False,
     )
     task_service.task_repository.find_by_id.return_value = existing_task
 
@@ -259,7 +265,7 @@ def test_update_task_status_unauthorized(task_service, valid_object_id):
         title="Task",
         description="Description",
         user_id="different_user_id",
-        completed=False
+        completed=False,
     )
     task_service.task_repository.find_by_id.return_value = existing_task
 
