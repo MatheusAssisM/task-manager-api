@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import Mock
-from src.services.metrics import MetricsService
 from src.models.metrics import Metrics
 from src.models.task import Task
 from src.models.user import User
+from src.services.metrics import MetricsService
 
 
 @pytest.fixture

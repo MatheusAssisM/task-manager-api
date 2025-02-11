@@ -35,9 +35,7 @@ def sample_user_dict():
 def test_create_user(user_repository, mock_collection, sample_user):
     # Arrange
     expected_id = "507f1f77bcf86cd799439011"
-    mock_collection.insert_one.return_value = MagicMock(
-        inserted_id=ObjectId(expected_id)
-    )
+    mock_collection.insert_one.return_value.inserted_id = ObjectId(expected_id)
 
     # Act
     user_id = user_repository.create(sample_user)
