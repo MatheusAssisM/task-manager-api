@@ -36,10 +36,3 @@ jobs:
     - name: Run tests with coverage
       run: |
         pytest tests/unit/ --cov=src/services --cov=src/repositories --cov-report=xml --cov-report=term-missing
-        
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        fail_ci_if_error: true
