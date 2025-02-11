@@ -2,7 +2,7 @@ swagger_config = {
     "swagger": "2.0",
     "info": {
         "title": "Task Manager API",
-        "description": "A RESTful API for managing tasks with authentication and metrics",
+        "description": "A RESTful API for managing tasks with authentication and metrics. Uses JWT access tokens (5 minute expiry) and refresh tokens (7 day expiry) for authentication.",
         "version": "1.0.0",
         "contact": {"email": "noreply@taskmanager.com"},
     },
@@ -13,7 +13,7 @@ swagger_config = {
             "type": "apiKey",
             "name": "Authorization",
             "in": "header",
-            "description": "JWT token format: Bearer <token>",
+            "description": "JWT token format: Bearer <token>. Access tokens expire in 5 minutes, use the /auth/refresh endpoint with your refresh token to get a new access token.",
         }
     },
     "paths": {
@@ -76,7 +76,7 @@ swagger_config = {
         "/auth/login": {
             "post": {
                 "tags": ["Authentication"],
-                "summary": "Login to get access token",
+                "summary": "Login to get access and refresh tokens",
                 "parameters": [
                     {
                         "in": "body",
@@ -106,6 +106,7 @@ swagger_config = {
                             "type": "object",
                             "properties": {
                                 "access_token": {"type": "string"},
+                                "refresh_token": {"type": "string"},
                                 "expires_in": {"type": "integer"},
                                 "user": {
                                     "type": "object",
@@ -125,7 +126,8 @@ swagger_config = {
         "/auth/logout": {
             "post": {
                 "tags": ["Authentication"],
-                "summary": "Logout current user",
+                "summary": "Logout current user and invalidate all tokens",
+                "description": "Invalidates both access and refresh tokens for the user",
                 "security": [{"Bearer": []}],
                 "responses": {
                     "200": {
@@ -135,7 +137,7 @@ swagger_config = {
                             "properties": {"message": {"type": "string"}},
                         },
                     },
-                    "401": {"description": "Unauthorized"},
+                    "401": {"description": "Unauthorized or invalid token"},
                 },
             }
         },
@@ -203,10 +205,56 @@ swagger_config = {
                 },
             }
         },
+        "/auth/refresh": {
+            "post": {
+                "tags": ["Authentication"],
+                "summary": "Refresh access token using refresh token",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "required": True,
+                        "schema": {
+                            "type": "object",
+                            "required": ["refresh_token"],
+                            "properties": {
+                                "refresh_token": {
+                                    "type": "string",
+                                    "example": "your.refresh.token",
+                                }
+                            },
+                        },
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "New tokens generated successfully",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "access_token": {"type": "string"},
+                                "refresh_token": {"type": "string"},
+                                "expires_in": {"type": "integer"},
+                                "user": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {"type": "string"},
+                                        "username": {"type": "string"},
+                                        "email": {"type": "string"},
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    "401": {"description": "Invalid refresh token"},
+                },
+            }
+        },
         "/tasks": {
             "get": {
                 "tags": ["Tasks"],
                 "summary": "Get all tasks for authenticated user",
+                "description": "Returns a list of all tasks belonging to the authenticated user",
                 "security": [{"Bearer": []}],
                 "responses": {
                     "200": {
@@ -224,6 +272,8 @@ swagger_config = {
                                             "description": {"type": "string"},
                                             "user_id": {"type": "string"},
                                             "completed": {"type": "boolean"},
+                                            "created_at": {"type": "string", "format": "date-time"},
+                                            "updated_at": {"type": "string", "format": "date-time"},
                                         },
                                     },
                                 }
@@ -236,6 +286,7 @@ swagger_config = {
             "post": {
                 "tags": ["Tasks"],
                 "summary": "Create a new task",
+                "description": "Creates a new task for the authenticated user",
                 "security": [{"Bearer": []}],
                 "parameters": [
                     {
@@ -264,7 +315,7 @@ swagger_config = {
                 ],
                 "responses": {
                     "201": {
-                        "description": "Task created",
+                        "description": "Task created successfully",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -291,6 +342,7 @@ swagger_config = {
             "get": {
                 "tags": ["Tasks"],
                 "summary": "Get a specific task",
+                "description": "Returns details of a specific task if it belongs to the authenticated user",
                 "security": [{"Bearer": []}],
                 "responses": {
                     "200": {
@@ -303,16 +355,19 @@ swagger_config = {
                                 "description": {"type": "string"},
                                 "user_id": {"type": "string"},
                                 "completed": {"type": "boolean"},
+                                "created_at": {"type": "string", "format": "date-time"},
+                                "updated_at": {"type": "string", "format": "date-time"},
                             },
                         },
                     },
                     "404": {"description": "Task not found"},
-                    "401": {"description": "Unauthorized"},
+                    "401": {"description": "Unauthorized or task belongs to another user"},
                 },
             },
             "put": {
                 "tags": ["Tasks"],
                 "summary": "Update a task",
+                "description": "Updates an existing task if it belongs to the authenticated user",
                 "security": [{"Bearer": []}],
                 "parameters": [
                     {
@@ -338,30 +393,32 @@ swagger_config = {
                 ],
                 "responses": {
                     "200": {
-                        "description": "Task updated",
+                        "description": "Task updated successfully",
                         "schema": {
                             "type": "object",
                             "properties": {"message": {"type": "string"}},
                         },
                     },
                     "404": {"description": "Task not found"},
-                    "401": {"description": "Unauthorized"},
+                    "401": {"description": "Unauthorized or task belongs to another user"},
+                    "400": {"description": "Invalid input"},
                 },
             },
             "delete": {
                 "tags": ["Tasks"],
                 "summary": "Delete a task",
+                "description": "Deletes a task if it belongs to the authenticated user",
                 "security": [{"Bearer": []}],
                 "responses": {
                     "200": {
-                        "description": "Task deleted",
+                        "description": "Task deleted successfully",
                         "schema": {
                             "type": "object",
                             "properties": {"message": {"type": "string"}},
                         },
                     },
                     "404": {"description": "Task not found"},
-                    "401": {"description": "Unauthorized"},
+                    "401": {"description": "Unauthorized or task belongs to another user"},
                 },
             },
         },
@@ -378,6 +435,7 @@ swagger_config = {
             "patch": {
                 "tags": ["Tasks"],
                 "summary": "Update task completion status",
+                "description": "Updates the completion status of a task if it belongs to the authenticated user",
                 "security": [{"Bearer": []}],
                 "parameters": [
                     {
@@ -387,20 +445,27 @@ swagger_config = {
                         "schema": {
                             "type": "object",
                             "required": ["completed"],
-                            "properties": {"completed": {"type": "boolean"}},
+                            "properties": {
+                                "completed": {
+                                    "type": "boolean",
+                                    "example": True,
+                                    "description": "New completion status of the task"
+                                }
+                            },
                         },
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Task status updated",
+                        "description": "Task status updated successfully",
                         "schema": {
                             "type": "object",
                             "properties": {"message": {"type": "string"}},
                         },
                     },
                     "404": {"description": "Task not found"},
-                    "401": {"description": "Unauthorized"},
+                    "401": {"description": "Unauthorized or task belongs to another user"},
+                    "400": {"description": "Invalid input"},
                 },
             },
         },
@@ -408,17 +473,18 @@ swagger_config = {
             "get": {
                 "tags": ["Metrics"],
                 "summary": "Get system metrics",
+                "description": "Returns system-wide metrics including user and task statistics",
                 "security": [{"Bearer": []}],
                 "responses": {
                     "200": {
-                        "description": "System metrics",
+                        "description": "System metrics retrieved successfully",
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "total_users": {"type": "integer"},
-                                "total_tasks": {"type": "integer"},
-                                "completed_tasks": {"type": "integer"},
-                                "active_tasks": {"type": "integer"},
+                                "total_users": {"type": "integer", "description": "Total number of registered users"},
+                                "total_tasks": {"type": "integer", "description": "Total number of tasks in the system"},
+                                "completed_tasks": {"type": "integer", "description": "Number of completed tasks"},
+                                "active_tasks": {"type": "integer", "description": "Number of active (incomplete) tasks"},
                             },
                         },
                     },

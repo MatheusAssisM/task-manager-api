@@ -13,6 +13,8 @@ from src.schemas.user import (
     PasswordResetRequestResponse,
     PasswordReset,
     PasswordResetResponse,
+    RefreshTokenRequest,
+    RefreshTokenResponse,
 )
 from src.schemas.common import ErrorResponse, UnauthorizedResponse
 from src.utils.decorators import validate_request
@@ -60,11 +62,45 @@ def login(data: UserLogin, auth_service: AuthService = Provide[Container.auth_se
                 401,
             )
 
-        token_data = auth_service.create_access_token(user)
+        token_data = auth_service.create_tokens(user)
         return (
             jsonify(
                 UserLoginResponse(
                     access_token=token_data["access_token"],
+                    refresh_token=token_data["refresh_token"],
+                    expires_in=token_data["expires_in"],
+                    user=UserResponse(
+                        id=user.id, username=user.username, email=user.email
+                    ),
+                ).model_dump()
+            ),
+            200,
+        )
+    except Exception as e:
+        return jsonify(ErrorResponse(error="Internal server error").model_dump()), 500
+
+
+@auth_bp.route("/refresh", methods=["POST"])
+@inject
+@validate_request(RefreshTokenRequest)
+def refresh_token(
+    data: RefreshTokenRequest, auth_service: AuthService = Provide[Container.auth_service]
+):
+    try:
+        token_data = auth_service.refresh_access_token(data.refresh_token)
+        if not token_data:
+            return (
+                jsonify(UnauthorizedResponse(error="Invalid refresh token").model_dump()),
+                401,
+            )
+
+        # Get user info
+        user = auth_service.validate_token(token_data["access_token"])
+        return (
+            jsonify(
+                RefreshTokenResponse(
+                    access_token=token_data["access_token"],
+                    refresh_token=token_data["refresh_token"],
                     expires_in=token_data["expires_in"],
                     user=UserResponse(
                         id=user.id, username=user.username, email=user.email

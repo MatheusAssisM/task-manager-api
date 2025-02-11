@@ -31,6 +31,9 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES = int(
         os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "30")
     )
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS = int(
+        os.getenv("JWT_REFRESH_TOKEN_EXPIRE_DAYS", "7")
+    )
 
     # Email Configuration
     SMTP_HOST = os.getenv("SMTP_HOST", "localhost")

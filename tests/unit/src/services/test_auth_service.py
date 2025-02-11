@@ -113,22 +113,140 @@ def test_authenticate_user_not_found(auth_service, user_repository):
     assert authenticated_user is None
 
 
-def test_create_access_token(auth_service, test_user):
+def test_create_tokens(auth_service, test_user, redis_client):
     # Act
-    token_data = auth_service.create_access_token(test_user)
+    token_data = auth_service.create_tokens(test_user)
 
     # Assert
     assert "access_token" in token_data
-    assert token_data["expires_in"] > 0
+    assert "refresh_token" in token_data
+    assert token_data["expires_in"] == Config.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
 
-    # Verify token contents
-    decoded = jwt.decode(
+    # Verify access token
+    decoded_access = jwt.decode(
         token_data["access_token"],
         Config.JWT_SECRET_KEY,
         algorithms=[Config.JWT_ALGORITHM],
     )
-    assert decoded["sub"] == test_user.id
-    assert decoded["email"] == test_user.email
+    assert decoded_access["sub"] == test_user.id
+    assert decoded_access["email"] == test_user.email
+    assert decoded_access["type"] == "access"
+
+    # Verify refresh token
+    decoded_refresh = jwt.decode(
+        token_data["refresh_token"],
+        Config.JWT_SECRET_KEY,
+        algorithms=[Config.JWT_ALGORITHM],
+    )
+    assert decoded_refresh["sub"] == test_user.id
+    assert decoded_refresh["email"] == test_user.email
+    assert decoded_refresh["type"] == "refresh"
+
+    # Verify tokens are stored in Redis
+    redis_client.setex.assert_any_call(
+        f"token:{token_data['access_token']}",
+        Config.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        json.dumps({"user_id": test_user.id, "email": test_user.email, "username": test_user.username}),
+    )
+
+    redis_client.setex.assert_any_call(
+        f"refresh:{token_data['refresh_token']}",
+        7 * 24 * 60 * 60,  # 7 days in seconds
+        json.dumps({"user_id": test_user.id, "email": test_user.email, "username": test_user.username}),
+    )
+
+
+def test_refresh_access_token_success(auth_service, test_user, redis_client):
+    # Arrange
+    refresh_token = jwt.encode(
+        {
+            "sub": test_user.id,
+            "email": test_user.email,
+            "exp": datetime.utcnow() + timedelta(days=7),
+            "type": "refresh"
+        },
+        Config.JWT_SECRET_KEY,
+        algorithm=Config.JWT_ALGORITHM,
+    )
+
+    # Mock Redis to return user data for the refresh token
+    cached_data = json.dumps(
+        {
+            "user_id": test_user.id,
+            "email": test_user.email,
+            "username": test_user.username,
+        }
+    ).encode("utf-8")
+    redis_client.get.return_value = cached_data
+
+    # Set up user repository to return the user
+    auth_service.user_repository.find_by_id.return_value = test_user
+
+    # Act
+    result = auth_service.refresh_access_token(refresh_token)
+
+    # Assert
+    assert result is not None
+    assert "access_token" in result
+    assert "refresh_token" in result
+    assert "expires_in" in result
+
+    # Verify new tokens
+    decoded_access = jwt.decode(
+        result["access_token"],
+        Config.JWT_SECRET_KEY,
+        algorithms=[Config.JWT_ALGORITHM],
+    )
+    assert decoded_access["sub"] == test_user.id
+    assert decoded_access["type"] == "access"
+
+
+def test_refresh_access_token_invalid_token(auth_service, redis_client):
+    # Act
+    result = auth_service.refresh_access_token("invalid_token")
+
+    # Assert
+    assert result is None
+
+
+def test_refresh_access_token_wrong_type(auth_service, test_user, redis_client):
+    # Arrange - Create a token with wrong type
+    refresh_token = jwt.encode(
+        {
+            "sub": test_user.id,
+            "email": test_user.email,
+            "exp": datetime.utcnow() + timedelta(days=7),
+            "type": "access"  # Wrong type
+        },
+        Config.JWT_SECRET_KEY,
+        algorithm=Config.JWT_ALGORITHM,
+    )
+
+    # Act
+    result = auth_service.refresh_access_token(refresh_token)
+
+    # Assert
+    assert result is None
+
+
+def test_refresh_access_token_expired(auth_service, test_user):
+    # Arrange - Create an expired token
+    refresh_token = jwt.encode(
+        {
+            "sub": test_user.id,
+            "email": test_user.email,
+            "exp": datetime.utcnow() - timedelta(days=1),
+            "type": "refresh"
+        },
+        Config.JWT_SECRET_KEY,
+        algorithm=Config.JWT_ALGORITHM,
+    )
+
+    # Act
+    result = auth_service.refresh_access_token(refresh_token)
+
+    # Assert
+    assert result is None
 
 
 def test_validate_token_success(auth_service, user_repository, test_user, redis_client):
@@ -137,8 +255,8 @@ def test_validate_token_success(auth_service, user_repository, test_user, redis_
         {
             "sub": test_user.id,
             "email": test_user.email,
-            "exp": datetime.utcnow()
-            + timedelta(minutes=Config.JWT_ACCESS_TOKEN_EXPIRE_MINUTES),
+            "exp": datetime.utcnow() + timedelta(minutes=Config.JWT_ACCESS_TOKEN_EXPIRE_MINUTES),
+            "type": "access"
         },
         Config.JWT_SECRET_KEY,
         algorithm=Config.JWT_ALGORITHM,
@@ -170,6 +288,7 @@ def test_validate_token_expired(auth_service, redis_client):
             "sub": "test_id",
             "email": "test@example.com",
             "exp": datetime.utcnow() - timedelta(minutes=1),
+            "type": "access"
         },
         Config.JWT_SECRET_KEY,
         algorithm=Config.JWT_ALGORITHM,
@@ -196,10 +315,15 @@ def test_validate_token_invalid(auth_service, redis_client):
 
 def test_cleanup_previous_tokens(auth_service, redis_client, test_user):
     # Arrange
-    # Mock Redis to return multiple tokens for the test user
-    token1 = f"token:123"
-    token2 = f"token:456"
-    redis_client.scan_iter.return_value = [token1, token2]
+    # Mock Redis to return both access and refresh tokens
+    token1 = "token:123"
+    token2 = "token:456"
+    refresh1 = "refresh:789"
+    refresh2 = "refresh:012"
+    redis_client.scan_iter.side_effect = [
+        [token1, token2],  # First call for access tokens
+        [refresh1, refresh2]  # Second call for refresh tokens
+    ]
 
     # Setup mock data for each token
     token1_data = json.dumps(
@@ -216,12 +340,30 @@ def test_cleanup_previous_tokens(auth_service, redis_client, test_user):
             "username": "other_user",
         }
     ).encode("utf-8")
+    refresh1_data = json.dumps(
+        {
+            "user_id": test_user.id,
+            "email": test_user.email,
+            "username": test_user.username,
+        }
+    ).encode("utf-8")
+    refresh2_data = json.dumps(
+        {
+            "user_id": "other_user_id",
+            "email": "other@example.com",
+            "username": "other_user",
+        }
+    ).encode("utf-8")
 
     def mock_get(key):
         if key == token1:
             return token1_data
         if key == token2:
             return token2_data
+        if key == refresh1:
+            return refresh1_data
+        if key == refresh2:
+            return refresh2_data
         return None
 
     redis_client.get.side_effect = mock_get
@@ -230,21 +372,33 @@ def test_cleanup_previous_tokens(auth_service, redis_client, test_user):
     auth_service._cleanup_previous_tokens(test_user.id)
 
     # Assert
-    # Should only delete token1 which belongs to test_user
-    redis_client.delete.assert_called_once_with(token1)
+    # Should only delete tokens belonging to test_user
+    redis_client.delete.assert_any_call(token1)
+    redis_client.delete.assert_any_call(refresh1)
+    assert redis_client.delete.call_count == 2
 
 
 def test_logout_success(auth_service, redis_client):
     # Arrange
-    token = "valid_token"
-    redis_client.delete.return_value = 1  # Redis returns 1 when key is deleted
+    token = jwt.encode(
+        {
+            "sub": "test_id",
+            "email": "test@example.com",
+            "exp": datetime.utcnow() + timedelta(minutes=15),
+            "type": "access"
+        },
+        Config.JWT_SECRET_KEY,
+        algorithm=Config.JWT_ALGORITHM,
+    )
 
     # Act
     result = auth_service.logout(token)
 
     # Assert
     assert result is True
-    redis_client.delete.assert_called_once_with(f"token:{token}")
+    # Verify cleanup was called
+    redis_client.scan_iter.assert_any_call("token:*")
+    redis_client.scan_iter.assert_any_call("refresh:*")
 
 
 def test_logout_token_not_found(auth_service, redis_client):

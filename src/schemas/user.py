@@ -30,10 +30,23 @@ class UserRegisterResponse(BaseModel):
     user: UserResponse
 
 
-class UserLoginResponse(BaseModel):
+class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     expires_in: int
     user: UserResponse
+
+
+class UserLoginResponse(TokenResponse):
+    pass
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
+class RefreshTokenResponse(TokenResponse):
+    pass
 
 
 class UserLogoutResponse(BaseModel):
