@@ -11,7 +11,7 @@ class Task:
             "title": self.title,
             "description": self.description,
             "user_id": self.user_id,
-            "completed": self.completed
+            "completed": self.completed,
         }
 
     @staticmethod
@@ -21,5 +21,5 @@ class Task:
             title=data.get("title"),
             description=data.get("description"),
             user_id=data.get("user_id"),
-            completed=data.get("completed", False)
+            completed=data.get("completed", False),
         )

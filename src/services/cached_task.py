@@ -23,7 +23,7 @@ class CachedTaskService:
             self.redis_client.setex(
                 self._get_task_key(task.id),
                 self.cache_ttl,
-                json.dumps({"id": task.id, **task.to_dict()})
+                json.dumps({"id": task.id, **task.to_dict()}),
             )
 
     def _invalidate_user_tasks_cache(self, user_id: str) -> None:
@@ -44,7 +44,7 @@ class CachedTaskService:
                 title=task_data.get("title"),
                 description=task_data.get("description"),
                 user_id=task_data.get("user_id"),
-                completed=task_data.get("completed", False)
+                completed=task_data.get("completed", False),
             )
             # Verify task belongs to user
             if task.user_id != user_id:
@@ -57,7 +57,9 @@ class CachedTaskService:
             self._cache_task(task)
         return task
 
-    def update_task(self, task_id: str, title: str | None, description: str | None, user_id: str) -> None:
+    def update_task(
+        self, task_id: str, title: str | None, description: str | None, user_id: str
+    ) -> None:
         self.task_service.update_task(task_id, title, description, user_id)
         # Invalidate caches
         self.redis_client.delete(self._get_task_key(task_id))
@@ -80,13 +82,16 @@ class CachedTaskService:
         cached_tasks = self.redis_client.get(self._get_user_tasks_key(user_id))
         if cached_tasks:
             tasks_data = json.loads(cached_tasks)
-            return [Task(
-                id=task_data.get("id"),
-                title=task_data.get("title"),
-                description=task_data.get("description"),
-                user_id=task_data.get("user_id"),
-                completed=task_data.get("completed", False)
-            ) for task_data in tasks_data]
+            return [
+                Task(
+                    id=task_data.get("id"),
+                    title=task_data.get("title"),
+                    description=task_data.get("description"),
+                    user_id=task_data.get("user_id"),
+                    completed=task_data.get("completed", False),
+                )
+                for task_data in tasks_data
+            ]
 
         # If not in cache, get from service and cache it
         tasks = self.task_service.get_user_tasks(user_id)
@@ -95,6 +100,6 @@ class CachedTaskService:
             self.redis_client.setex(
                 self._get_user_tasks_key(user_id),
                 self.cache_ttl,
-                json.dumps(tasks_data)
+                json.dumps(tasks_data),
             )
         return tasks

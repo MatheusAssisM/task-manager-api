@@ -7,7 +7,7 @@ from src.middleware.auth import require_auth
 from src.utils.decorators import validate_request
 from src.utils.logger import setup_logger
 
-logger = setup_logger('task_routes')
+logger = setup_logger("task_routes")
 tasks_bp = Blueprint("tasks", __name__)
 
 
@@ -65,7 +65,9 @@ def update(
         if task is None:
             return jsonify({"error": "Task not found"}), 404
 
-        task_service.update_task(task_id, data.title, data.description, g.current_user.id)
+        task_service.update_task(
+            task_id, data.title, data.description, g.current_user.id
+        )
         return jsonify({"message": "Task updated successfully"}), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
@@ -126,8 +128,12 @@ def update_status(
             logger.warning(f"Attempt to update status of non-existent task: {task_id}")
             return jsonify({"error": "Task not found"}), 404
 
-        task_service.update_task_status(task_id, bool(data.completed), g.current_user.id)
-        logger.info(f"Successfully updated completion status of task {task_id} to {data.completed}")
+        task_service.update_task_status(
+            task_id, bool(data.completed), g.current_user.id
+        )
+        logger.info(
+            f"Successfully updated completion status of task {task_id} to {data.completed}"
+        )
         return jsonify({"message": "Task status updated successfully"}), 200
     except ValueError as e:
         logger.error(f"Error updating task status: {str(e)}")

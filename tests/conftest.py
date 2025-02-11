@@ -27,9 +27,7 @@ def user_repository():
 @pytest.fixture
 def sample_user():
     return User(
-        username="test_user",
-        email="test@example.com",
-        password="hashed_password"
+        username="test_user", email="test@example.com", password="hashed_password"
     )
 
 
@@ -62,9 +60,7 @@ def task_repository():
 @pytest.fixture
 def sample_task():
     return Task(
-        title="Test Task",
-        description="Test Description",
-        user_id="test_user_id"
+        title="Test Task", description="Test Description", user_id="test_user_id"
     )
 
 

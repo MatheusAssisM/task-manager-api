@@ -14,7 +14,7 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
 
     app.url_map.strict_slashes = False
-    
+
     CORS(
         app,
         origins=["http://localhost:9000"],
@@ -27,17 +27,17 @@ def create_app(config_class=Config):
             "Accept",
             "Origin",
             "Access-Control-Request-Method",
-            "Access-Control-Request-Headers"
+            "Access-Control-Request-Headers",
         ],
         expose_headers=[
             "Content-Type",
             "Authorization",
             "Access-Control-Allow-Origin",
-            "Access-Control-Allow-Credentials"
+            "Access-Control-Allow-Credentials",
         ],
         resources={
             r"/*": {},
-        }
+        },
     )
 
     init_app(app)
@@ -46,18 +46,15 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(metrics_bp, url_prefix="/metrics")
 
-    SWAGGER_URL = '/api/docs'
+    SWAGGER_URL = "/api/docs"
     swaggerui_blueprint = get_swaggerui_blueprint(
         SWAGGER_URL,
         None,
-        config={
-            'app_name': "Task Manager API",
-            'spec': swagger_config
-        }
+        config={"app_name": "Task Manager API", "spec": swagger_config},
     )
     app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
-    @app.route('/api/swagger.json')
+    @app.route("/api/swagger.json")
     def swagger_json():
         return jsonify(swagger_config)
 

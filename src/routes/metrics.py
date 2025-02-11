@@ -5,7 +5,7 @@ from src.services.metrics import MetricsService
 from src.middleware.auth import require_auth
 from src.utils.logger import setup_logger
 
-logger = setup_logger('metrics_routes')
+logger = setup_logger("metrics_routes")
 metrics_bp = Blueprint("metrics", __name__)
 
 

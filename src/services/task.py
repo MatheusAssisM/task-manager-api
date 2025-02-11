@@ -4,7 +4,8 @@ from ..services.user import UserService
 from bson.objectid import ObjectId
 from ..utils.logger import setup_logger
 
-logger = setup_logger('task_service')
+logger = setup_logger("task_service")
+
 
 class TaskService:
     def __init__(self, task_repository: TaskRepository, user_service: UserService):
@@ -13,7 +14,9 @@ class TaskService:
 
     def create_task(self, title: str, description: str, user_id: str) -> dict:
         if not title or title.strip() == "":
-            logger.error(f"Attempted to create task with empty title for user {user_id}")
+            logger.error(
+                f"Attempted to create task with empty title for user {user_id}"
+            )
             raise ValueError("Title cannot be empty")
 
         # Verify if user exists
@@ -31,7 +34,9 @@ class TaskService:
 
         task = self.task_repository.find_by_id(task_id)
         if task and task.user_id != user_id:
-            logger.warning(f"Unauthorized access attempt to task {task_id} by user {user_id}")
+            logger.warning(
+                f"Unauthorized access attempt to task {task_id} by user {user_id}"
+            )
             raise ValueError("Unauthorized access to task")
         return task
 
@@ -64,7 +69,7 @@ class TaskService:
             title=updated_title,
             description=updated_description,
             user_id=existing_task.user_id,
-            completed=existing_task.completed  # Preserve the existing completed status
+            completed=existing_task.completed,  # Preserve the existing completed status
         )
         self.task_repository.update(task_id, task)
 
@@ -79,17 +84,21 @@ class TaskService:
             raise ValueError("Task not found")
 
         if existing_task.user_id != user_id:
-            logger.warning(f"Unauthorized status update attempt for task {task_id} by user {user_id}")
+            logger.warning(
+                f"Unauthorized status update attempt for task {task_id} by user {user_id}"
+            )
             raise ValueError("Unauthorized access to task")
 
         task = Task(
             title=existing_task.title,
             description=existing_task.description,
             user_id=existing_task.user_id,
-            completed=completed
+            completed=completed,
         )
         self.task_repository.update(task_id, task)
-        logger.info(f"Task {task_id} completed status updated to {completed} by user {user_id}")
+        logger.info(
+            f"Task {task_id} completed status updated to {completed} by user {user_id}"
+        )
 
     def delete_task(self, task_id: str, user_id: str) -> None:
         if not ObjectId.is_valid(task_id):
@@ -102,7 +111,9 @@ class TaskService:
             raise ValueError("Task not found")
 
         if existing_task.user_id != user_id:
-            logger.warning(f"Unauthorized deletion attempt for task {task_id} by user {user_id}")
+            logger.warning(
+                f"Unauthorized deletion attempt for task {task_id} by user {user_id}"
+            )
             raise ValueError("Unauthorized access to task")
 
         self.task_repository.delete(task_id)

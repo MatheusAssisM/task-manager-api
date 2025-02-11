@@ -1,3 +1,4 @@
+from bson import ObjectId
 from ..models.metrics import Metrics
 
 
@@ -11,6 +12,10 @@ class MetricsRepository:
 
     def update_metrics(self, metrics: Metrics) -> None:
         if metrics.id:
-            self.collection.update_one({"_id": metrics.id}, {"$set": metrics.to_dict()})
+            # Convert id to ObjectId if it's a string
+            metrics_id = (
+                ObjectId(metrics.id) if isinstance(metrics.id, str) else metrics.id
+            )
+            self.collection.update_one({"_id": metrics_id}, {"$set": metrics.to_dict()})
         else:
             self.collection.insert_one(metrics.to_dict())
