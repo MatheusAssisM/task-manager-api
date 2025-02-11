@@ -21,6 +21,7 @@ exclude_lines =
     raise ImportError
     raise Exception
     except Exception as e:
+fail_under = 80
 
 [html]
 directory = coverage_html
