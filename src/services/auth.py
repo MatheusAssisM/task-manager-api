@@ -148,7 +148,7 @@ class AuthService:
             # Update password
             hashed_password = self._hash_password(new_password)
             user.password = hashed_password
-            self.user_repository.update(user)
+            self.user_repository.update(user.id, user)
 
             # Remove reset token
             self.redis_client.delete(token_key)
